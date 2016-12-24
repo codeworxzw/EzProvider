@@ -299,8 +299,6 @@ public class tokenDao extends dao<token> {
                     try {
                         res = make.makePayment(bankSwitch(card.getString("bank_name")), "purchase", bankEntity);
                     } catch (Exception ex) {
-                        res = null;
-                        ex.printStackTrace();
                     }
                     if (res != null) res.put("respondCode", "99");
                     if (res != null && (res.getString("respondCode").equals("3030") || res.getString("respondCode").equals("3035"))) {
