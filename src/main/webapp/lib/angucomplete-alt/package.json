@@ -1,0 +1,64 @@
+{
+  "name": "angucomplete-alt",
+  "version": "2.5.0",
+  "description": "Awesome Autocompleteness for AngularJS",
+  "author": {
+    "name": "ghiden"
+  },
+  "email": "hidenari@gmail.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ghiden/angucomplete-alt.git"
+  },
+  "engines": {
+    "node": ">= 0.8.4"
+  },
+  "license": "MIT",
+  "main": "./angucomplete-alt.js",
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-uglify": "~0.5.1",
+    "grunt-contrib-jshint": "~0.6.4",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-karma": "~0.12.2",
+    "karma": "^0.13.0",
+    "karma-phantomjs-launcher": "^1.0.0",
+    "karma-jasmine": "~0.3.3",
+    "jasmine-core": "~2.4.1",
+    "phantomjs-prebuilt": ">1.9.0",
+    "grunt-conventional-changelog": "~1.0.0",
+    "load-grunt-tasks": "~0.2.0"
+  },
+  "gitHead": "76f0247476f88d61f6ae5201d0d981aa216a92a0",
+  "bugs": {
+    "url": "https://github.com/ghiden/angucomplete-alt/issues"
+  },
+  "homepage": "https://github.com/ghiden/angucomplete-alt#readme",
+  "_id": "angucomplete-alt@2.5.0",
+  "scripts": {},
+  "_shasum": "aec2e69d50fb13b9429a0c4fd28a8f218c06504a",
+  "_from": "angucomplete-alt@latest",
+  "_npmVersion": "2.15.1",
+  "_nodeVersion": "4.4.3",
+  "_npmUser": {
+    "name": "ghiden",
+    "email": "hidenari@gmail.com"
+  },
+  "dist": {
+    "shasum": "aec2e69d50fb13b9429a0c4fd28a8f218c06504a",
+    "tarball": "https://registry.npmjs.org/angucomplete-alt/-/angucomplete-alt-2.5.0.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "ghiden",
+      "email": "hidenari@gmail.com"
+    }
+  ],
+  "_npmOperationalInternal": {
+    "host": "packages-16-east.internal.npmjs.com",
+    "tmp": "tmp/angucomplete-alt-2.5.0.tgz_1474192525074_0.26067221257835627"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/angucomplete-alt/-/angucomplete-alt-2.5.0.tgz"
+}

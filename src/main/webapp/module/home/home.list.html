@@ -1,0 +1,128 @@
+<div class="col-sm-12">
+    <div class="row">
+        <div class="top-bg" style="height: 320px;">
+            <div class="row">
+                <div class="col-sm-3">
+                    <a href="/index.html#/"><span class="logo">ez<span style="color: #00E03F">pay</span></span></a>
+                </div>
+                <div class="col-sm-9" style="text-align:right;" ng-show="logged">
+                    <button class="button rounded" data-ng-click="logout()">Гарах</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div class="col-sm-12 middle-bg-white">
+    <div class="panel">
+        <div class="row">
+            <div id="logged" ng-show="logged">
+                <div class="col-sm-12">
+                    <div style="padding: 50px;padding-top: 30px;">
+                        <h2>Бүртгэлтэй картууд</h2>
+                        <br>
+                        <table id="data">
+                            <tr>
+                                <td style="font-weight: bold; width: 15%;">Карт гаргагч</td>
+                                <td style="font-weight: bold; width: 30%;">Картын дугаар</td>
+                                <td style="font-weight: bold; width: 20%;">Хүчинтэй огноо</td>
+                                <td style="font-weight: bold; width: 10%;">Төлөв</td>
+                                <td style="font-weight: bold; width: 10%;">Wallet ID</td>
+                                <td style="font-weight: bold; width: 5%;">Төрөл</td>
+                                <td style="font-weight: bold; width: 10%;">Үйлдэл</td>
+                            </tr>
+                            <tr data-ng-repeat="item in list">
+                                <td><img style="width: 24px; background: #aaa; border-radius: 100%; margin-right: 4px;" src="assets/img/{{item.card_ico}}"/> {{item.bank_name}}</td>
+                                <td>{{item.card_id}}</td>
+                                <td>{{item.expire}}</td>
+                                <td><span class="label label-{{item.status=='active'?'success':'danger'}}">{{item.status == 'active'?'Идэвхтэй':'Идэвхгүй'}}</td>
+                                <td>{{item.walletId}}</td>
+                                <td>{{item.card_type}}</td>
+                                <td>
+                                    <a data-ng-click="set(item)"><span class="glyphicon glyphicon-pencil"></span></a>
+                                    &nbsp;&nbsp;
+                                    <a data-ng-click="delete(item)"><span class="glyphicon glyphicon-trash"></span></a>
+                                </td>
+                            </tr>
+                        </table>
+                        <br><br>
+                        <h2>Картын мэдээлэл</h2>
+                        <br>
+                        <div class="add">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <span>Банкны нэр</span>
+                                    <select name="bank_name" data-ng-model="bank_name">
+                                        <option data-ng-repeat="item in providers" value="{{item.name}}">{{item.name}}</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-5">
+                                    <span>Картны дугаар</span>
+                                    <input type="text" data-ng-model="card_id" placeholder="XXXX XXXX XXXX XXXX"/>
+                                </div>
+                                <div class="col-sm-4">
+                                    <span>Хүчинтэй хугацаа</span>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <select data-ng-model="year">
+                                                <option value="17">17</option>
+                                                <option value="18">18</option>
+                                                <option value="19">19</option>
+                                                <option value="20">20</option>
+                                                <option value="21">21</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <select data-ng-model="month">
+                                                <option value="01">1</option>
+                                                <option value="02">2</option>
+                                                <option value="03">3</option>
+                                                <option value="04">4</option>
+                                                <option value="05">5</option>
+                                                <option value="06">6</option>
+                                                <option value="07">7</option>
+                                                <option value="08">8</option>
+                                                <option value="09">9</option>
+                                                <option value="10">10</option>
+                                                <option value="11">11</option>
+                                                <option value="12">12</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <button class="button" data-ng-click="save_card()">Хадгалах</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="login" ng-show="!logged">
+                <div class="col-sm-6" style="background: #fff; height: 600px;">
+                    <div style="padding: 50px;" class="login" style="background: #fff !important;">
+                        <h2>Сайн байна уу !</h2>
+                        <br><br>
+                        <span>Утасны дугаар</span>
+                        <input type="text" data-ng-model="walletId" placeholder="xxxxxxxx"/><br>
+                        <span>Нууц үг</span>
+                        <input type="password" data-ng-model="pin"/><br>
+                        <button class="button" data-ng-click="check()">Нэвтрэх</button>
+                    </div>
+                </div>
+                <div class="col-sm-6" style="background: #f6f7f8; height: 600px;">
+                    <div style="padding: 50px; margin: 0 auto;" class="login">
+                        <span style="text-align: center; width: 100%; display: block;">Та гар утасны EZPay аппликейшн ашиглан энэхүү QR кодыг уншуулж нэвтэрч болно.</span>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?data={{qr}}&size=220x220&margin=0"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

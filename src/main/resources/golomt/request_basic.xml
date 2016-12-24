@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE isopackager SYSTEM "C:\Files\Projects\Java\EzProvider1\config\genericpackager.dtd">
+<isopackager>
+    <isofield
+            id="0"
+            length="4"
+            name="MESSAGE TYPE INDICATOR"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="1"
+            length="64"
+            name="BIT MAP"
+            class="org.jpos.iso.IFA_BITMAP"/>
+    <isofield
+            id="2"
+            length="16"
+            name="Primary Card Number"
+            class="org.jpos.iso.IFB_LLBINARY"/>
+    <isofield
+            id="3"
+            length="6"
+            name="Process Code"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="4"
+            length="12"
+            name="Transaction Amount"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="11"
+            length="6"
+            name="Trace number"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="22"
+            length="4"
+            name="Pos Entry Mode"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="24"
+            length="3"
+            name="NII"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="25"
+            length="2"
+            name="POS Condition Code"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="35"
+            length="37"
+            name="Track 2"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="41"
+            length="8"
+            name="Terminal ID"
+            class="org.jpos.iso.IFB_LLCHAR"/>
+    <isofield
+            id="42"
+            length="15"
+            name="Merchant ID "
+            class="org.jpos.iso.IFA_LLCHAR"/>
+    <isofield
+            id="62"
+            length="6"
+            name="Transaction Trace Number"
+            class="org.jpos.iso.IFB_LLCHAR"/>
+</isopackager>

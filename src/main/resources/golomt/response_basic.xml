@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE isopackager SYSTEM "C:\Files\Projects\Java\EzProvider1\config\genericpackager.dtd">
+<isopackager>
+    <isofield
+            id="0"
+            length="4"
+            name="MESSAGE TYPE INDICATOR"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="1"
+            length="64"
+            name="BIT MAP"
+            class="org.jpos.iso.IFA_BITMAP"/>
+    <isofield
+            id="3"
+            length="6"
+            name="Process Code"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="4"
+            length="12"
+            name="Transaction Amount"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="11"
+            length="6"
+            name="Trace number"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="12"
+            length="6"
+            name="Transaction Time"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+
+    <isofield
+            id="13"
+            length="4"
+            name="Transaction Date"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="24"
+            length="3"
+            name="NII"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="37"
+            length="12"
+            name="System Reference Number"
+            class="org.jpos.iso.IFA_LLCHAR"/>
+    <isofield
+            id="38"
+            length="6"
+            name="Approval Code"
+            class="org.jpos.iso.IFA_LLCHAR"/>
+    <isofield
+            id="39"
+            length="2"
+            name="Transaction Respond Code"
+            class="org.jpos.iso.IFA_LLCHAR"/>
+    <isofield
+            id="41"
+            length="8"
+            name="Terminal ID"
+            class="org.jpos.iso.IFA_LLCHAR"/>
+</isopackager>

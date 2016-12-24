@@ -1,0 +1,235 @@
+body {
+    font-family: Roboto, Helvetica, sans-serif;
+    font-size: 11px;
+    background: #fff; !important;
+    padding: 0px;
+    margin: 0px;
+    overflow-x: hidden;
+}
+
+a:hover{
+    text-decoration: none;
+    cursor: pointer;
+}
+a{
+    cursor: pointer;
+}
+
+
+.top-bg{
+    background-color: rgb(52, 152, 219);
+    background-repeat: no-repeat;
+    background-image: url(http://mnkythemes.com/fintechwp/zurich/wp-content/plugins/revslider/admin/assets/images/transparent.png);
+    background-size: contain;
+    background-position: right center;
+    opacity: 1;
+    visibility: inherit;
+    z-index: 20;
+    height: 550px;
+    width: 100%;
+    background: #1f43b3 !important;
+    background: linear-gradient(45deg,#3498db 0%,#1f43b3 100%) !important;
+    padding: 130px;
+    padding-top: 30px;
+}
+
+.high {
+    font-size: 320px;
+    color: #fff;
+    font-weight: bold;
+}
+
+.logo {
+    color: #fff;
+    font-weight: bold;
+    font-size: 32px;
+    margin-left: 30px;
+}
+
+.middle-bg {
+    background: #f6f7f8 !important;
+    min-height: 450px;
+}
+
+.middle-bg-white {
+    min-height: 500px;
+    background: #fff !important;
+}
+
+.middle-bg-gray {
+    height: 200px;
+    background: #fff !important;
+}
+
+.middle-bg-dark {
+    height: 200px;
+    background: #ddd !important;
+}
+
+.anywhere {
+    background: url(../img/pexels-photo-211052.jpg) no-repeat;
+    background-size: 100% 100%;
+    width:100%;
+    display: inline-block;
+    height: 500px;
+}
+
+h2 {
+    color: #0b3b5b;
+    font-weight: normal;
+}
+
+p {
+    color: #888;
+}
+
+h2.red {
+    color: #dd6c9d;
+    font-weight: normal;
+}
+
+p.white {
+    color: #888;
+    font-size: 25px;
+}
+
+button {
+    border: 0px !important;
+    outline: none !important;
+}
+
+.label {
+    font-size: 100% !important;
+    font-weight: normal !important;
+}
+
+.button {
+    color: #fff;
+    letter-spacing: .02em;
+    line-height: 1;
+    font-weight: 500;
+    font-size: 16px;
+    display: inline-block;
+    background: #3498db;
+    border-bottom: 2px solid #1c79b7;
+    text-shadow: none;
+    padding: 15px 35px;
+    font-size: 17px;
+    border-bottom: 0;
+    cursor: hand;
+    border-radius: 30px;
+}
+
+.button.red {
+    background: #dd6c9d;
+}
+
+.button.rounded{
+    background: transparent;
+    border: 3px solid #fff;
+    margin-right: 20px;
+}
+
+.button:hover {
+    opacity: 0.7;
+    cursor: hand;
+}
+
+.panel {
+    width: 80%;
+    margin:0 auto;
+    box-shadow: 2px 2px 20px 0 rgba(102,102,119,0.21);
+    background: #fff;
+    border-radius: 0px !important;
+    border: 1px solid #eee;
+    padding: 0px;
+    font-size: 16px;
+    margin-top: -180px;
+    min-height: 600px;
+    height: auto;
+    margin-bottom: 70px;
+}
+
+table {
+    width: 100%;
+    background: #fff;
+    border-spacing: 0px;
+    border-collapse: collapse;
+}
+
+table tr td {
+    padding: 10px;
+    border: 1px solid #e7e7e7;
+    font-size: 13px;
+}
+
+thead td {
+    background: #4285f4;
+    color: #fff;
+    border: 0px solid #4285f4 !important;
+}
+table#data tr:nth-child(even) {background: #fafafa;}
+table#data tr:nth-child(odd) {background: #fefefe;}
+
+table#data td {
+    border-right: 0px;
+    border-left: 0px;
+}
+
+.add {
+    background: #f9fafb;
+    padding: 20px;
+    border-top: 1px solid #e7e7e7;
+    border-bottom: 1px solid #e7e7e7;
+}
+
+
+.login {
+    padding: 20px;
+    min-height: 800px;
+}
+
+.login span {
+    padding-left: 15px;
+}
+
+.login img {
+    position: absolute;
+    margin: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.login input[type="text"],input[type="password"] {
+    font-size: 30px;
+    padding: 6px;
+    border: 0px;
+    border-bottom: 1px solid #eee;
+    outline:none;
+    display: block;
+    margin: 10px;
+}
+
+#logged input[type="text"],input[type="password"] {
+    font-size: 30px;
+    padding: 6px;
+    border: 0px;
+    border-bottom: 1px solid #eee;
+    outline:none;
+    display: block;
+    margin: 0px;
+    margin-top: 20px;
+}
+
+#logged select {
+    font-size: 30px;
+    padding: 6px;
+    border: 0px;
+    border-bottom: 1px solid #eee;
+    outline:none;
+    min-width: 130px;
+    margin: 0px;
+    margin-top: 20px;
+}

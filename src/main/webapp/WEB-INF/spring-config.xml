@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util" xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd
+  http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+
+        <context:component-scan base-package="mn.ezpay" />
+        <context:property-placeholder location="classpath:database.properties" />
+        <mvc:annotation-driven />
+        <mvc:resources location="/assets/" mapping="/assets/**" />
+        <mvc:resources location="/lib/" mapping="/lib/**" />
+        <mvc:resources location="/module/" mapping="/module/**" />
+
+        <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+            <property name="driverClassName" value="${database.driver}" />
+            <property name="url" value="${database.url}" />
+            <property name="username" value="${database.user}" />
+            <property name="password" value="${database.password}" />
+        </bean>
+
+        <bean id="sessionFactory"
+              class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+            <property name="dataSource" ref="dataSource" />
+            <property name="packagesToScan">
+                <list>
+                    <value>mn.ezpay.entity.token</value>
+                    <value>mn.ezpay.entity.terminal</value>
+                    <value>mn.ezpay.entity.merchant</value>
+                    <value>mn.ezpay.entity.cards</value>
+                    <value>mn.ezpay.entity.wallets</value>
+                </list>
+            </property>
+            <property name="annotatedClasses">
+                <list>
+                    <value>mn.ezpay.entity.cards</value>
+                    <value>mn.ezpay.entity.token</value>
+                    <value>mn.ezpay.entity.merchant</value>
+                    <value>mn.ezpay.entity.terminal</value>
+                    <value>mn.ezpay.entity.purchase</value>
+                    <value>mn.ezpay.entity.trace</value>
+                    <value>mn.ezpay.entity.wallets</value>
+                    <value>mn.ezpay.entity.merchant_only</value>
+                    <value>mn.ezpay.entity.providers</value>
+                    <value>mn.ezpay.entity.logins</value>
+                    <value>mn.ezpay.entity.multitoken</value>
+                </list>
+            </property>
+            <property name="hibernateProperties">
+                <props>
+                    <prop key="hibernate.dialect">org.hibernate.dialect.MySQLMyISAMDialect</prop>
+                    <prop key="hibernate.show_sql">false</prop>
+                    <!--${hibernate.show_sql}</prop>-->
+                    <prop key="hibernate.hbm2ddl.auto">update</prop>
+                    <prop key="c3p0.max_size">20</prop>
+                    <prop key="c3p0.min_size">5</prop>
+                    <prop key="c3p0.timeout">1800</prop>
+                    <prop key="c3p0.max_statements">100</prop>
+                    <prop key="c3p0.idle_test_period">300</prop>
+                    <prop key="hibernate.c3p0.acquire_increment">2</prop>
+                    <prop key="connection.pool_size">1</prop>
+                    <prop key="hibernate.connection.CharSet">utf8</prop>
+                    <prop key="hibernate.connection.characterEncoding">utf8</prop>
+                    <prop key="hibernate.connection.useUnicode">true</prop>
+                    <prop key="hibernate.current_session_context_class">thread</prop>
+                    <prop key="hibernate.enable_lazy_load_no_trans">true</prop>
+                </props>
+            </property>
+        </bean>
+
+        <bean id="transactionManager"
+              class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+            <property name="sessionFactory" ref="sessionFactory"></property>
+        </bean>
+
+        <bean id="persistenceExceptionTranslationPostProcessor"
+              class="org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor" />
+
+        <bean id="tokenDao" class="mn.ezpay.dao.tokenDao"/>
+        <bean id="tokenService" class="mn.ezpay.service.tokenService"/>
+
+        <bean id="merchantDao" class="mn.ezpay.dao.merchantDao"/>
+        <bean id="merchantService" class="mn.ezpay.service.merchantService"/>
+
+        <bean id="walletDao" class="mn.ezpay.dao.walletDao"/>
+        <bean id="walletService" class="mn.ezpay.service.walletService"/>
+
+        <bean id="cardDao" class="mn.ezpay.dao.cardDao"/>
+        <bean id="cardService" class="mn.ezpay.service.cardService"/>
+
+        <bean id="providerDao" class="mn.ezpay.dao.providerDao"/>
+        <bean id="providerService" class="mn.ezpay.service.providerService"/>
+
+        <bean id="loginDao" class="mn.ezpay.dao.loginDao"/>
+        <bean id="loginService" class="mn.ezpay.service.loginService"/>
+</beans>

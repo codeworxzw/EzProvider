@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE isopackager SYSTEM "C:\Files\Projects\Java\EzProvider1\config\genericpackager.dtd">
+<isopackager>
+    <isofield
+            id="0"
+            length="4"
+            name="MESSAGE TYPE INDICATOR"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="1"
+            length="64"
+            name="BIT MAP"
+            class="org.jpos.iso.IFA_BITMAP"/>
+    <isofield
+            id="2"
+            length="16"
+            name="Primary Card Number"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="3"
+            length="6"
+            name="Process Code"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+    <isofield
+            id="11"
+            length="6"
+            name="Trace number"
+            class="org.jpos.iso.IFA_NUMERIC"/>
+</isopackager>
