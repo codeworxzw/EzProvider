@@ -65,9 +65,9 @@ public class walletDao extends dao<wallets> {
                 wallets w = list.get(0);
                 w.setStatus("active");
                 res = update(w);
+                session.getTransaction().commit();
             } else
                 res = findOne(walletId);
-            session.getTransaction().commit();
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
