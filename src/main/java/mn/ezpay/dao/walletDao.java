@@ -1,6 +1,7 @@
 package mn.ezpay.dao;
 
 import mn.ezpay.entity.wallets;
+import mn.ezpay.msg.msgGW;
 import org.hibernate.Query;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
@@ -42,6 +43,9 @@ public class walletDao extends dao<wallets> {
             int pin = 10000 + (int) (Math.random() * 10000);
             w.setPin(Integer.toString(pin));
             res = update(w);
+
+            //sms gateway
+            msgGW.send(w.getWalletId(), msgGW.buildMsg(1, new String[]{w.getPin()}));
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -61,11 +65,11 @@ public class walletDao extends dao<wallets> {
             query.setParameter("status", "inactive");
             query.setParameter("pin", pin);
             List<wallets> list = query.list();
+            session.getTransaction().commit();
             if (list.size() > 0) {
                 wallets w = list.get(0);
                 w.setStatus("active");
                 res = update(w);
-                session.getTransaction().commit();
             } else
                 res = findOne(walletId);
         } catch (Exception ex) {
