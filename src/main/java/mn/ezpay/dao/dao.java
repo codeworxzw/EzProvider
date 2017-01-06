@@ -23,12 +23,13 @@ public class dao<T> {
     public Session session;
 
     public Session getSession() {
-        return (session = sessionFactory.openSession());
+        return (session = sessionFactory.getCurrentSession());
+        //return (session = sessionFactory.openSession());
     }
 
     public void close() {
-       if (session != null && session.isOpen())
-            session.close();
+       //if (session != null && session.isOpen())
+            //session.close();
     }
 
     public void save(final T entity) {
