@@ -2,7 +2,9 @@ package mn.ezpay.service;
 
 import mn.ezpay.dao.tokenDao;
 import mn.ezpay.entity.cards;
+import mn.ezpay.entity.multitoken;
 import mn.ezpay.entity.token;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
@@ -38,6 +40,14 @@ public class tokenService {
 
     public token findToken(String token) {
         return dao.findToken(token);
+    }
+
+    public cards confirmCard(cards entity) {
+        return dao.confirmCard(entity);
+    }
+
+    public List<multitoken> token5(String walletId, String hashed) {
+        return dao.generate5Token(walletId, hashed);
     }
 
     public token payment(token entity) {

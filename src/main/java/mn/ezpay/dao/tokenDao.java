@@ -8,12 +8,14 @@ import mn.ezpay.security.base64;
 import org.bouncycastle.util.encoders.Base64;
 import org.hibernate.Query;
 import org.hibernate.Transaction;
+import org.hibernate.criterion.Example;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public class tokenDao extends dao<token> {
@@ -41,7 +43,7 @@ public class tokenDao extends dao<token> {
         crit.addOrder(Order.desc("_date"));
         List<token> list = crit.list();
         session.getTransaction().commit();
-        return list.size()==1?list.get(0):new token();
+        return list.size()>0?list.get(0):new token();
     }
 
     public List<cards> findLoyalty(String token) {
@@ -85,6 +87,7 @@ public class tokenDao extends dao<token> {
                 JSONObject card_data = new JSONObject(utils.decrypt(Base64.decode(item.getEnc()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
                 if (card.getString("card_id").indexOf("*") != -1 || token.getType().equals("long")) {
                     String pan4 = card.getString("card_id").substring(15, 19);
+                    System.out.println(card.getString("card_id")+" "+card_data.getString("card_id"));
                     if (card_data.getString("card_id").endsWith(pan4)) {
                         sel = card_data;
                         break;
@@ -95,6 +98,48 @@ public class tokenDao extends dao<token> {
             ex.printStackTrace();
         }
         return sel;
+    }
+
+    public multitoken update_multi(multitoken entity) {
+        getSession();
+        session.getTransaction().begin();
+        try {
+            multitoken item = (multitoken) session.merge(entity);
+            session.getTransaction().commit();
+            return item;
+        } catch (RuntimeException ex) {
+            session.getTransaction().rollback();
+        } finally {
+            close();
+        }
+
+        return entity;
+    }
+
+    public List<multitoken> generate5Token(String walletId, String hashed) {
+        getSession();
+        List tokens;
+        session.getTransaction().begin();
+
+        Query queryDisable = session.getNamedQuery("disableTokens");
+        queryDisable.setParameter("walletId", walletId);
+        queryDisable.executeUpdate();
+
+        Query query5 = session.getNamedQuery("multiTokens");
+        query5.setParameter("walletId", walletId);
+        tokens = query5.list();
+        session.getTransaction().commit();
+        for (int i = 0; i < 5; i++) {
+            String token = utils.generateToken();
+            multitoken m = new multitoken();
+            m.setToken(token);
+            m.setStatus("active");
+            m.setWalletId(walletId);
+            m.setHashed(hashed);
+            tokens.add(update_multi(m));
+        }
+
+        return tokens;
     }
 
     public String traceNo(String terminalId, String merchantId) throws Exception {
@@ -189,11 +234,11 @@ public class tokenDao extends dao<token> {
                         old.setStatus(entity.getStatus());
                         session.merge(old);
                         session.getTransaction().commit();
-                        old = payment(entity, old);
                     } catch (Exception ex) {
                         session.getTransaction().rollback();
                     } finally {
                         close();
+                        old = payment(entity, old);
                     }
 
                     return old;
@@ -279,12 +324,52 @@ public class tokenDao extends dao<token> {
         return type.none;
     }
 
+    public void saveCard(cards entity) {
+        getSession();
+        session.getTransaction().begin();
+        try {
+            session.save(entity);
+            session.getTransaction().commit();
+        } catch (RuntimeException ex) {
+            session.getTransaction().rollback();
+        } finally {
+            close();
+        }
+    }
+
+    public cards confirmCard(cards card) {
+        JSONObject res = null;
+        try {
+            System.out.println("CONFIRM CARD BEGIN");
+            make make = new make();
+            JSONObject hashed = new JSONObject(utils.decrypt(base64.decode(card.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+            String traceNo = traceNo("13133707", "000000000043752");
+
+            JSONObject bankEntity = new JSONObject();
+            bankEntity.put("card_id", hashed.getString("card_id"));
+            bankEntity.put("amount", 1.0f);
+            bankEntity.put("expire", hashed.getString("expire"));
+            bankEntity.put("terminalId", "13133707");
+            bankEntity.put("bankMerchantId", "000000000043752");
+            bankEntity.put("traceNo", traceNo);
+            res = make.makePayment(bankSwitch(hashed.getString("bank_name")), "purchase", bankEntity);
+            if (res != null && (res.getString("respondCode").equals("3030") || res.getString("respondCode").equals("3035"))) {
+                card.setPpin(traceNo);
+            }
+            System.out.println("CONFIRM CARD END");
+        } catch (Exception ex) {
+        }
+
+        return card;
+    }
+
     public token payment(token entity, token old) {
         try {
             if (entity.getStatus() == USER_ACCEPT) {
                 System.out.println("PAYMENT BEGIN");
                 make make = new make();
                 JSONObject hashed = new JSONObject(utils.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+                System.out.println(hashed.toString());
                 JSONObject card = findCard(hashed, findWallet(old.getWalletId()), old);
                 String traceNo = traceNo(old.getMerchantData().split(":")[0], old.getMerchantData().split(":")[1]);
                 if (card != null) {

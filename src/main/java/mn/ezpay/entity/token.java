@@ -20,7 +20,17 @@ import java.util.List;
         ),
         @NamedNativeQuery(
                 name = "token5",
-                query = "select * FROM multitoken where token=:token",
+                query = "select * FROM multitoken where token=:token and status='active'",
+                resultClass = multitoken.class
+        ),
+        @NamedNativeQuery(
+                name = "multiTokens",
+                query = "select * FROM multitoken where walletId=:walletId and status='active'",
+                resultClass = multitoken.class
+        ),
+        @NamedNativeQuery(
+                name = "disableTokens",
+                query = "update multitoken set status='inactive' where walletId=:walletId",
                 resultClass = multitoken.class
         )
 })
@@ -174,4 +184,5 @@ public class token implements java.io.Serializable {
     public void setMerchant(merchant_only merchant) {
         this.merchant = merchant;
     }
+
 }

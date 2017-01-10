@@ -38,7 +38,7 @@ public class dao<T> {
         try {
             session.save(entity);
             session.getTransaction().commit();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -52,7 +52,7 @@ public class dao<T> {
             T item = (T) session.merge(entity);
             session.getTransaction().commit();
             return item;
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -68,7 +68,7 @@ public class dao<T> {
         try {
             item = (T) session.get(type, id);
             session.getTransaction().commit();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -82,7 +82,7 @@ public class dao<T> {
         try {
             session.delete(entity);
             session.getTransaction().commit();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -98,7 +98,7 @@ public class dao<T> {
             long total = (Long) crit.uniqueResult();
             session.getTransaction().commit();
             return total;
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -117,7 +117,7 @@ public class dao<T> {
             total = totalUniq(crit);
             session.getTransaction().commit();
             return list;
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -139,7 +139,7 @@ public class dao<T> {
             List<T> list = crit.list();
             item = list.size() > 0 ? list.get(0) : null;
             session.getTransaction().commit();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
@@ -166,7 +166,7 @@ public class dao<T> {
             list = crit.list();
             total = totalUniq(crit);
             session.getTransaction().commit();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();

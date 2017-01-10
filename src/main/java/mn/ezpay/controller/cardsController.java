@@ -2,6 +2,7 @@ package mn.ezpay.controller;
 
 import mn.ezpay.entity.cards;
 import mn.ezpay.service.cardService;
+import mn.ezpay.service.tokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +16,22 @@ public class cardsController {
     @Autowired
     cardService service;
 
+    @Autowired
+    tokenService tokenService;
+
     @RequestMapping(value = "card/save", method = RequestMethod.POST, consumes = "application/json", produces = MediaType.APPLICATION_JSON_VALUE)
     public cards save(@RequestBody cards entity) {
-        service.save(entity);
-        return entity;
+        if ("active".equals(entity.getStatus())) {
+            service.update(entity);
+        } else {
+            entity = tokenService.confirmCard(entity);
+            if (entity.getPpin() != null && entity.getPpin().length() > 0) {
+                service.save(entity);
+                return entity;
+            }
+        }
+
+        return null;
     }
 
     @RequestMapping(value = "card/delete", method = RequestMethod.DELETE)
@@ -30,7 +43,17 @@ public class cardsController {
 
     @RequestMapping(value = "card/update", method = RequestMethod.POST, consumes = "application/json", produces = "application/json; charset=utf-8", headers = "Accept=*/*")
     public cards update(@RequestBody cards entity) {
-        return service.update(entity);
+        if ("active".equals(entity.getStatus())) {
+            service.update(entity);
+        } else {
+            entity = tokenService.confirmCard(entity);
+            if (entity.getPpin() != null && entity.getPpin().length() > 0) {
+                service.update(entity);
+                return entity;
+            }
+        }
+
+        return null;
     }
 
     @RequestMapping(value = "card/activate", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

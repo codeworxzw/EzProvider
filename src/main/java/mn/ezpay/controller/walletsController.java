@@ -61,9 +61,9 @@ public class walletsController {
     }
 
     @RequestMapping(value = "wallets/findOne", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public wallets findOne(@RequestParam String walletId)  {
+    public wallets findOne(@RequestParam String walletId, @RequestParam String pin)  {
         wallets wallet = service.findOne(walletId);
-        if (wallet != null && wallet.getStatus().equals("active")) {
+        if (wallet != null && wallet.getStatus().equals("active") && wallet.getPin().equals(pin)) {
             List<cards> cards = wallet.getCards();
             if (cards != null) {
                 for (int i = 0; i < cards.size(); i++) {
@@ -83,7 +83,7 @@ public class walletsController {
                 }
             }
         } else {
-
+            wallet = new wallets();
         }
 
         return wallet;
