@@ -97,6 +97,7 @@ public class make {
 
                     return msg.response(connection, json, bank);
                 } catch (Exception ex) {
+                    ex.printStackTrace();
                     return res;
                 }
             }

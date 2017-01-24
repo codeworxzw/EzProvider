@@ -36,26 +36,43 @@ public class tokenDao extends dao<token> {
     }
 
     public token findToken(String token) {
+        token t = null;
         getSession();
         session.getTransaction().begin();
-        crit = session.createCriteria(token.class);
-        crit.add(Restrictions.eq("token", token));
-        crit.addOrder(Order.desc("_date"));
-        List<token> list = crit.list();
-        session.getTransaction().commit();
-        return list.size()>0?list.get(0):new token();
+        try {
+            crit = session.createCriteria(token.class);
+            crit.add(Restrictions.eq("token", token));
+            crit.addOrder(Order.desc("_date"));
+            List<token> list = crit.list();
+            session.getTransaction().commit();
+            t = list.size()>0?list.get(0):new token();
+        } catch (Exception ex) {
+            t = new token();
+            session.getTransaction().rollback();
+        } finally {
+            close();
+        }
+
+        return t;
     }
 
     public List<cards> findLoyalty(String token) {
+        List<cards> list = null;
         token entity = findToken(token);
         String walletId = entity.getWalletId();
-        session = getSession();
-        Transaction tx = session.beginTransaction();
-        crit = session.createCriteria(cards.class);
-        crit.add(Restrictions.eq("walletId", walletId));
-        crit.add(Restrictions.eq("status", "active"));
-        List<cards> list = crit.list();
-        tx.commit();
+        getSession();
+        session.getTransaction().begin();
+        try {
+            crit = session.createCriteria(cards.class);
+            crit.add(Restrictions.eq("walletId", walletId));
+            crit.add(Restrictions.eq("status", "active"));
+            list = crit.list();
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            close();
+        }
 
         return list;
     }
@@ -87,9 +104,9 @@ public class tokenDao extends dao<token> {
                 JSONObject card_data = new JSONObject(utils.decrypt(Base64.decode(item.getEnc()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
                 if (card.getString("card_id").indexOf("*") != -1 || token.getType().equals("long")) {
                     String pan4 = card.getString("card_id").substring(15, 19);
-                    System.out.println(card.getString("card_id")+" "+card_data.getString("card_id"));
                     if (card_data.getString("card_id").endsWith(pan4)) {
                         sel = card_data;
+                        System.out.println(card.getString("card_id")+" "+card_data.getString("card_id"));
                         break;
                     }
                 }
@@ -116,14 +133,30 @@ public class tokenDao extends dao<token> {
         return entity;
     }
 
+//    public cards update_card(cards entity) {
+//        getSession();
+//        session.getTransaction().begin();
+//        try {
+//            cards item = (cards) session.merge(entity);
+//            session.getTransaction().commit();
+//            return item;
+//        } catch (RuntimeException ex) {
+//            session.getTransaction().rollback();
+//        } finally {
+//            close();
+//        }
+//
+//        return entity;
+//    }
+
     public List<multitoken> generate5Token(String walletId, String hashed) {
         getSession();
         List tokens;
         session.getTransaction().begin();
 
-        Query queryDisable = session.getNamedQuery("disableTokens");
-        queryDisable.setParameter("walletId", walletId);
-        queryDisable.executeUpdate();
+//        Query queryDisable = session.getNamedQuery("disableTokens");
+//        queryDisable.setParameter("walletId", walletId);
+//        queryDisable.executeUpdate();
 
         Query query5 = session.getNamedQuery("multiTokens");
         query5.setParameter("walletId", walletId);
@@ -139,30 +172,42 @@ public class tokenDao extends dao<token> {
             tokens.add(update_multi(m));
         }
 
+//        cards card = new cards();
+//        card.setEnc(hashed.replaceAll(" ","+"));
+//        card.setWalletId(walletId);
+//        card.setStatus("active");
+//        card.setPpin("123456");
+//        update_card(card);
+
         return tokens;
     }
 
-    public String traceNo(String terminalId, String merchantId) throws Exception {
-        session = getSession();
-        Transaction tx = session.beginTransaction();
-        crit = session.createCriteria(trace.class);
-        crit.add(Restrictions.eq("terminalId", terminalId));
-        crit.add(Restrictions.eq("merchantId", merchantId));
-        List<trace> list = crit.list();
-        String traceNo = "";
-        if (list.size() > 0) {
-            trace t = list.get(0);
-            traceNo = t.getTraceNo() + "";
-            System.out.println("traceNo = "+traceNo);
-            while (traceNo.length() < 6) {
-                traceNo = "0" + traceNo;
+    public String traceNo(String terminalId, String merchantId)  {
+        String traceNo = "0";
+        getSession();
+        session.getTransaction().begin();
+        try {
+            crit = session.createCriteria(trace.class);
+            crit.add(Restrictions.eq("terminalId", terminalId));
+            crit.add(Restrictions.eq("merchantId", merchantId));
+            List<trace> list = crit.list();
+            if (list.size() > 0) {
+                trace t = list.get(0);
+                traceNo = t.getTraceNo() + "";
+                System.out.println("traceNo = " + traceNo);
+                while (traceNo.length() < 6) {
+                    traceNo = "0" + traceNo;
+                }
+                t.setTraceNo(t.getTraceNo() + 1);
+                session.merge(t);
             }
-            t.setTraceNo(t.getTraceNo() + 1);
-            session.merge(t);
-            tx.commit();
-            return traceNo;
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            close();
         }
-        tx.commit();
         return traceNo;
     }
 
@@ -278,7 +323,12 @@ public class tokenDao extends dao<token> {
             if (old.getStatus() == USER_ACCEPT && old.getMerchantData().equals(entity.getMerchantData())) {
                 make make = new make();
                 JSONObject hashed = new JSONObject(utils.decrypt(Base64.decode(entity.getHashed()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
-                JSONObject card = findCard(hashed, findWallet(entity.getWalletId()), old);
+                JSONObject card = null;
+                if ("short".equals(old.getType()))
+                    card = findCard(hashed, findWallet(entity.getWalletId()), old);
+                else
+                    card = hashed;
+
                 if (card != null) {
                     JSONObject bankEntity = new JSONObject(jsonString(entity));
                     bankEntity.put("card_id", card.getString("card_id"));
@@ -321,7 +371,7 @@ public class tokenDao extends dao<token> {
         if (name.equals("Голомт банк"))
             return type.golomt;
 
-        return type.none;
+        return type.golomt;
     }
 
     public void saveCard(cards entity) {
@@ -368,9 +418,14 @@ public class tokenDao extends dao<token> {
             if (entity.getStatus() == USER_ACCEPT) {
                 System.out.println("PAYMENT BEGIN");
                 make make = new make();
+                System.out.println(old.getHashed());
                 JSONObject hashed = new JSONObject(utils.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 System.out.println(hashed.toString());
-                JSONObject card = findCard(hashed, findWallet(old.getWalletId()), old);
+                JSONObject card = null;
+                if ("short".equals(old.getType()))
+                    card = findCard(hashed, findWallet(entity.getWalletId()), old);
+                else
+                    card = hashed;
                 String traceNo = traceNo(old.getMerchantData().split(":")[0], old.getMerchantData().split(":")[1]);
                 if (card != null) {
                     JSONObject bankEntity = new JSONObject();
@@ -384,6 +439,7 @@ public class tokenDao extends dao<token> {
                     try {
                         res = make.makePayment(bankSwitch(card.getString("bank_name")), "purchase", bankEntity);
                     } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                     if (res != null) res.put("respondCode", "99");
                     if (res != null && (res.getString("respondCode").equals("3030") || res.getString("respondCode").equals("3035"))) {

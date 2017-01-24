@@ -51,17 +51,10 @@
             </property>
             <property name="hibernateProperties">
                 <props>
-                    <prop key="hibernate.dialect">org.hibernate.dialect.MySQLMyISAMDialect</prop>
+                    <prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
                     <prop key="hibernate.show_sql">false</prop>
                     <!--${hibernate.show_sql}</prop>-->
                     <prop key="hibernate.hbm2ddl.auto">update</prop>
-                    <prop key="c3p0.max_size">20</prop>
-                    <prop key="c3p0.min_size">5</prop>
-                    <prop key="c3p0.timeout">1800</prop>
-                    <prop key="c3p0.max_statements">100</prop>
-                    <prop key="c3p0.idle_test_period">300</prop>
-                    <prop key="hibernate.c3p0.acquire_increment">2</prop>
-                    <prop key="connection.pool_size">1</prop>
                     <prop key="hibernate.connection.CharSet">utf8</prop>
                     <prop key="hibernate.connection.characterEncoding">utf8</prop>
                     <prop key="hibernate.connection.useUnicode">true</prop>

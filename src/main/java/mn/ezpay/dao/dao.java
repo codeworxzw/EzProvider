@@ -46,12 +46,12 @@ public class dao<T> {
     }
 
     public T update(final T entity) {
+
         getSession();
         session.getTransaction().begin();
         try {
-            T item = (T) session.merge(entity);
+            session.merge(entity);
             session.getTransaction().commit();
-            return item;
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
@@ -90,21 +90,21 @@ public class dao<T> {
     }
 
     public long total(final Class<T> type) {
+        long total = 0;
         getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(type);
             crit.setProjection(Projections.rowCount());
-            long total = (Long) crit.uniqueResult();
+            total = (Long) crit.uniqueResult();
             session.getTransaction().commit();
-            return total;
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
             close();
         }
 
-        return 0;
+        return total;
     }
 
     public <T> List<T> findAll(final Class<T> type) {
@@ -116,7 +116,6 @@ public class dao<T> {
             list = crit.list();
             total = totalUniq(crit);
             session.getTransaction().commit();
-            return list;
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
