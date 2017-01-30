@@ -1,6 +1,6 @@
 package mn.ezpay.msg;
 
-import mn.ezpay.payment.utils;
+import mn.ezpay.payment.vault;
 import mn.ezpay.payment.bank;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.packager.GenericPackager;
@@ -31,7 +31,7 @@ public class golomtMsg extends msg {
             byte[] header = {0x00, 0x53, 0x60, 0x00, 0x03, 0x00, 0x00};
             isoMsg.setHeader(header);
             isoMsg.set(3, "000000");
-            isoMsg.set(4, utils.amount(json.getDouble("amount")));
+            isoMsg.set(4, vault.amount(json.getDouble("amount")));
             isoMsg.set(11, json.getString("traceNo"));
             isoMsg.set(22, "022");
             isoMsg.set(24, "003");
@@ -322,22 +322,22 @@ public class golomtMsg extends msg {
 
     public byte[] purchase_void_default() {
         String str = "006f60000300000200703c05800cc00014169496255596404287020000000000100000000009141407070519010022000300303730353431393831393539363030393736313231323131333830303030303030303030323436333800123030303030303130303030300006303030303031";
-        return utils.hexStringToByteArray(str);
+        return vault.hexStringToByteArray(str);
     }
 
     public byte[] settlement_default() {
         String str = "0056600003000005002020010000c000129200000000110003313231323131333830303030303030303030323436333800063030303030310030303031303030303030303031303030303030303030303030303030303030";
-        return utils.hexStringToByteArray(str);
+        return vault.hexStringToByteArray(str);
     }
 
     public byte[] batch_upload_default() {
         String str = "007b60000300000320703c05800ec00014169496255596404287010001000000000000000012181442063019010022000300303633303431393739393531353931393634303031323132313133383030303030303030303032343633380022303230303030303030322020202020202020202020200006303030303031";
-        return utils.hexStringToByteArray(str);
+        return vault.hexStringToByteArray(str);
     }
 
     public byte[] purchase_reversal_default() {
         String str = "004a600003000004007024058000c000041694962555964042870100000000000001000000101901002200030031323132313133383030303030303030303032343633380006303030303031";
-        return utils.hexStringToByteArray(str);
+        return vault.hexStringToByteArray(str);
     }
 
     public JSONObject response(SSLSocket connection, JSONObject json, bank bank) throws Exception {
@@ -358,14 +358,14 @@ public class golomtMsg extends msg {
                         System.out.println("Response (PURCHASE) (Orginal String): " + new String(buf));
 
                         res.put("traceNo", json.getString("traceNo"));
-                        res.put("systemRef", utils.getNumber(buf, 30, 12));
-                        res.put("cardNo", utils.formatCard(json.getString("card_id"))); //nemegdel
+                        res.put("systemRef", vault.getNumber(buf, 30, 12));
+                        res.put("cardNo", vault.formatCard(json.getString("card_id"))); //nemegdel
                         res.put("terminalId", json.getString("terminalId"));//nemegdel
                         res.put("bankMerchantId", json.getString("bankMerchantId"));//nemegdel
-                        res.put("approveCode", utils.getNumber(buf, 42, 6));
-                        res.put("transTime", utils.getString(buf, 23, 3));
-                        res.put("transDate", utils.getString(buf, 26, 2));
-                        res.put("amount", utils.amount(json.getDouble("amount")));
+                        res.put("approveCode", vault.getNumber(buf, 42, 6));
+                        res.put("transTime", vault.getString(buf, 23, 3));
+                        res.put("transDate", vault.getString(buf, 26, 2));
+                        res.put("amount", vault.amount(json.getDouble("amount")));
                         if (buf[55] != ' ')
                             res.put("respondCode", "3" + buf[48] + "3" + buf[49]);
                         else

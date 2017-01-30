@@ -22,7 +22,7 @@ import java.util.UUID;
 import static javax.crypto.Cipher.DECRYPT_MODE;
 import static javax.crypto.Cipher.getInstance;
 
-public class utils {
+public class vault {
 
     public static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();

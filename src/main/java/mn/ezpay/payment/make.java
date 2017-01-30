@@ -83,7 +83,7 @@ public class make {
             else if ("settlement".equals(bank.getMode())) bytes = msg.settlement(json);
             else if ("batch".equals(bank.getMode())) bytes = msg.batch_upload(json);
 
-            bytes = utils.encrypt(bytes, false);
+            bytes = vault.encrypt(bytes, false);
             SSLSocket connection = getSSLSocket(bank);
             if (connection.isConnected()) {
                 try {

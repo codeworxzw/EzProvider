@@ -1,7 +1,7 @@
 package mn.ezpay.dao;
 
 import mn.ezpay.entity.cards;
-import mn.ezpay.payment.utils;
+import mn.ezpay.payment.vault;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public class cardDao extends dao<cards> {
 
     public cards update(cards entity) {
         if (entity.getEnc().indexOf("card_id") != -1) {
-            entity.setEnc(utils.encryptedData(entity.getEnc(), getClass().getClassLoader().getResource("cfg/public.der").getFile()));
+            entity.setEnc(vault.encryptedData(entity.getEnc(), getClass().getClassLoader().getResource("cfg/public.der").getFile()));
         }
         return super.update(entity);
     }

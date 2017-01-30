@@ -3,7 +3,7 @@ package mn.ezpay.controller;
 import mn.ezpay.entity.cards;
 import mn.ezpay.entity.multitoken;
 import mn.ezpay.entity.token;
-import mn.ezpay.payment.utils;
+import mn.ezpay.payment.vault;
 import mn.ezpay.security.base64;
 import mn.ezpay.service.tokenService;
 import org.json.JSONObject;
@@ -57,7 +57,7 @@ public class paymentController {
             if (list != null) {
                 for (int i = 0; i < list.size(); i++) {
                     cards c = (cards) list.get(i);
-                    String data = new String(utils.decrypt(base64.decode(c.getEnc()), "C:/Files/Projects/EzProvider/src/main/resources/golomt/default.der").
+                    String data = new String(vault.decrypt(base64.decode(c.getEnc()), "C:/Files/Projects/EzProvider/src/main/resources/golomt/default.der").
                             getBytes(Charset.forName("UTF-8")));
                     JSONObject json = new JSONObject(data);
                     if (json.getString("loyalty").equals("true")) {

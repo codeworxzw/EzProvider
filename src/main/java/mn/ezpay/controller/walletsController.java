@@ -2,7 +2,7 @@ package mn.ezpay.controller;
 
 import mn.ezpay.entity.cards;
 import mn.ezpay.entity.wallets;
-import mn.ezpay.payment.utils;
+import mn.ezpay.payment.vault;
 import mn.ezpay.security.base64;
 import mn.ezpay.service.walletService;
 import org.json.JSONObject;
@@ -68,12 +68,12 @@ public class walletsController {
             if (cards != null) {
                 for (int i = 0; i < cards.size(); i++) {
                     cards c = cards.get(i);
-                    String enc = utils.decrypt(base64.decode(c.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile());
+                    String enc = vault.decrypt(base64.decode(c.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile());
 
                     try {
                         JSONObject item = new JSONObject(enc);
                         if (item.getString("loyalty").equals("false"))
-                            item.put("card_id", utils.formatCard(item.getString("card_id")));
+                            item.put("card_id", vault.formatCard(item.getString("card_id")));
 
                         item.put("id", c.getId());
                         c.setEnc(item.toString());

@@ -3,19 +3,17 @@ package mn.ezpay.dao;
 import mn.ezpay.entity.*;
 import mn.ezpay.payment.make;
 import mn.ezpay.payment.type;
-import mn.ezpay.payment.utils;
+import mn.ezpay.payment.vault;
 import mn.ezpay.security.base64;
 import org.bouncycastle.util.encoders.Base64;
 import org.hibernate.Query;
-import org.hibernate.Transaction;
-import org.hibernate.criterion.Example;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
 import org.springframework.stereotype.Repository;
 
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 @Repository
 public class tokenDao extends dao<token> {
@@ -101,7 +99,7 @@ public class tokenDao extends dao<token> {
         try {
             for (int i = 0; i < wallet.getCards().size(); i++) {
                 cards item = wallet.getCards().get(i);
-                JSONObject card_data = new JSONObject(utils.decrypt(Base64.decode(item.getEnc()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
+                JSONObject card_data = new JSONObject(vault.decrypt(Base64.decode(item.getEnc()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
                 if (card.getString("card_id").indexOf("*") != -1 || token.getType().equals("long")) {
                     String pan4 = card.getString("card_id").substring(15, 19);
                     if (card_data.getString("card_id").endsWith(pan4)) {
@@ -163,7 +161,7 @@ public class tokenDao extends dao<token> {
         tokens = query5.list();
         session.getTransaction().commit();
         for (int i = 0; i < 5; i++) {
-            String token = utils.generateToken();
+            String token = vault.generateToken();
             multitoken m = new multitoken();
             m.setToken(token);
             m.setStatus("active");
@@ -205,6 +203,7 @@ public class tokenDao extends dao<token> {
             session.getTransaction().commit();
         } catch (Exception ex) {
             session.getTransaction().rollback();
+            ex.printStackTrace();
         } finally {
             close();
         }
@@ -233,7 +232,7 @@ public class tokenDao extends dao<token> {
                     session.getTransaction().commit();
                 }
             } else {
-                token = utils.generateToken();
+                token = vault.generateToken();
                 System.out.println(miniToken(token));
                 entity.setResponse("{'code':'EZ901','msg':'Token амжилттай үүслээ !'}");
                 entity.setToken(token);
@@ -322,7 +321,7 @@ public class tokenDao extends dao<token> {
 
             if (old.getStatus() == USER_ACCEPT && old.getMerchantData().equals(entity.getMerchantData())) {
                 make make = new make();
-                JSONObject hashed = new JSONObject(utils.decrypt(Base64.decode(entity.getHashed()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
+                JSONObject hashed = new JSONObject(vault.decrypt(Base64.decode(entity.getHashed()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
                 JSONObject card = null;
                 if ("short".equals(old.getType()))
                     card = findCard(hashed, findWallet(entity.getWalletId()), old);
@@ -392,7 +391,7 @@ public class tokenDao extends dao<token> {
         try {
             System.out.println("CONFIRM CARD BEGIN");
             make make = new make();
-            JSONObject hashed = new JSONObject(utils.decrypt(base64.decode(card.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+            JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(card.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
             String traceNo = traceNo("13133707", "000000000043752");
 
             JSONObject bankEntity = new JSONObject();
@@ -419,7 +418,7 @@ public class tokenDao extends dao<token> {
                 System.out.println("PAYMENT BEGIN");
                 make make = new make();
                 System.out.println(old.getHashed());
-                JSONObject hashed = new JSONObject(utils.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+                JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 System.out.println(hashed.toString());
                 JSONObject card = null;
                 if ("short".equals(old.getType()))
@@ -441,9 +440,10 @@ public class tokenDao extends dao<token> {
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
-                    if (res != null) res.put("respondCode", "99");
+                    //if (res != null) res.put("respondCode", "99");
                     if (res != null && (res.getString("respondCode").equals("3030") || res.getString("respondCode").equals("3035"))) {
                         purchase p = new purchase();
+                        List<purchase> pur = new LinkedList<purchase>();
                         p.setApproveCode(res.getString("approveCode"));
                         p.setTraceNo(res.getString("traceNo"));
                         p.setSystemRef(res.getString("systemRef"));
@@ -451,11 +451,13 @@ public class tokenDao extends dao<token> {
                         p.setTransTime(res.getString("transTime"));
                         p.setTransDate(res.getString("transDate"));
                         p.setRespondCode(res.getString("respondCode"));
-                        old.getTrace().add(p);
+                        pur.add(p);
+                        old.setTrace(pur);
                         old.setStatus(SUCCESS);
                         old.setResponse(res.toString());
                         update(old);
-                        old.setResponse("{'code':'EZ910','msg':'Гүйлгээ амжилттай хийгдлээ ! (" + utils.priceWithoutDecimal(entity.getAmount()) + ")'}");
+                        old.setResponse("{'code':'EZ910','msg':'Гүйлгээ амжилттай хийгдлээ ! (" + vault.priceWithoutDecimal(entity.getAmount()) + ")'}");
+                        //System.out.println(old.toString());
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", ""); //new traceNo
