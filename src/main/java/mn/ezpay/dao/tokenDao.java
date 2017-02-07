@@ -12,6 +12,9 @@ import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
 import org.springframework.stereotype.Repository;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -40,6 +43,7 @@ public class tokenDao extends dao<token> {
         try {
             crit = session.createCriteria(token.class);
             crit.add(Restrictions.eq("token", token));
+            //crit.add(Restrictions.lt("timestampdiff(SECOND,_date,current_timestamp)", 60*60*10000));
             crit.addOrder(Order.desc("_date"));
             List<token> list = crit.list();
             session.getTransaction().commit();
@@ -131,22 +135,6 @@ public class tokenDao extends dao<token> {
         return entity;
     }
 
-//    public cards update_card(cards entity) {
-//        getSession();
-//        session.getTransaction().begin();
-//        try {
-//            cards item = (cards) session.merge(entity);
-//            session.getTransaction().commit();
-//            return item;
-//        } catch (RuntimeException ex) {
-//            session.getTransaction().rollback();
-//        } finally {
-//            close();
-//        }
-//
-//        return entity;
-//    }
-
     public List<multitoken> generate5Token(String walletId, String hashed) {
         getSession();
         List tokens;
@@ -170,14 +158,24 @@ public class tokenDao extends dao<token> {
             tokens.add(update_multi(m));
         }
 
-//        cards card = new cards();
-//        card.setEnc(hashed.replaceAll(" ","+"));
-//        card.setWalletId(walletId);
-//        card.setStatus("active");
-//        card.setPpin("123456");
-//        update_card(card);
-
         return tokens;
+    }
+
+
+    public static void getTraceNo()
+    {
+        try {
+            String text = "Your sample content to save in a text file.";
+            BufferedWriter out = new BufferedWriter(new FileWriter("c:\\trace.txt"));
+            out.write(text);
+            out.close();
+        }
+        catch (IOException e)
+        {
+            System.out.println("Exception ");
+        }
+
+        return ;
     }
 
     public String traceNo(String terminalId, String merchantId)  {
@@ -189,15 +187,15 @@ public class tokenDao extends dao<token> {
             crit.add(Restrictions.eq("terminalId", terminalId));
             crit.add(Restrictions.eq("merchantId", merchantId));
             List<trace> list = crit.list();
+
             if (list.size() > 0) {
                 trace t = list.get(0);
+                t.setTraceNo(t.getTraceNo() + 1);
+                session.saveOrUpdate(t);
                 traceNo = t.getTraceNo() + "";
-                System.out.println("traceNo = " + traceNo);
                 while (traceNo.length() < 6) {
                     traceNo = "0" + traceNo;
                 }
-                t.setTraceNo(t.getTraceNo() + 1);
-                session.merge(t);
             }
 
             session.getTransaction().commit();
@@ -282,7 +280,10 @@ public class tokenDao extends dao<token> {
                         session.getTransaction().rollback();
                     } finally {
                         close();
-                        old = payment(entity, old);
+                        if (old.getAmount() < 0)
+                            old = pvoid(entity, old);
+                        else
+                            old = payment(entity, old);
                     }
 
                     return old;
@@ -302,6 +303,7 @@ public class tokenDao extends dao<token> {
                     }
                     return old;
                 } else if (old.getStatus() == SUCCESS) {
+                    old.setHashed("");
                     return old;
                 }
 
@@ -314,11 +316,8 @@ public class tokenDao extends dao<token> {
         return entity;
     }
 
-    public token pvoid(token entity) {
+    public token pvoid(token entity, token old) {
         try {
-            String token = tokenFull(entity);
-            token old = findToken(token);
-
             if (old.getStatus() == USER_ACCEPT && old.getMerchantData().equals(entity.getMerchantData())) {
                 make make = new make();
                 JSONObject hashed = new JSONObject(vault.decrypt(Base64.decode(entity.getHashed()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
@@ -373,19 +372,6 @@ public class tokenDao extends dao<token> {
         return type.golomt;
     }
 
-    public void saveCard(cards entity) {
-        getSession();
-        session.getTransaction().begin();
-        try {
-            session.save(entity);
-            session.getTransaction().commit();
-        } catch (RuntimeException ex) {
-            session.getTransaction().rollback();
-        } finally {
-            close();
-        }
-    }
-
     public cards confirmCard(cards card) {
         JSONObject res = null;
         try {
@@ -415,6 +401,7 @@ public class tokenDao extends dao<token> {
     public token payment(token entity, token old) {
         try {
             if (entity.getStatus() == USER_ACCEPT) {
+                String traceNo = traceNo(old.getMerchantData().split(":")[0], old.getMerchantData().split(":")[1]);
                 System.out.println("PAYMENT BEGIN");
                 make make = new make();
                 System.out.println(old.getHashed());
@@ -425,7 +412,6 @@ public class tokenDao extends dao<token> {
                     card = findCard(hashed, findWallet(entity.getWalletId()), old);
                 else
                     card = hashed;
-                String traceNo = traceNo(old.getMerchantData().split(":")[0], old.getMerchantData().split(":")[1]);
                 if (card != null) {
                     JSONObject bankEntity = new JSONObject();
                     bankEntity.put("card_id", card.getString("card_id"));
@@ -451,13 +437,15 @@ public class tokenDao extends dao<token> {
                         p.setTransTime(res.getString("transTime"));
                         p.setTransDate(res.getString("transDate"));
                         p.setRespondCode(res.getString("respondCode"));
+                        p.setCode("EZ910");
+                        res.put("msg", "Success");
                         pur.add(p);
+                        old.setTraceNo(traceNo);
                         old.setTrace(pur);
                         old.setStatus(SUCCESS);
+                        res.put("code", "EZ910");
                         old.setResponse(res.toString());
                         update(old);
-                        old.setResponse("{'code':'EZ910','msg':'Гүйлгээ амжилттай хийгдлээ ! (" + vault.priceWithoutDecimal(entity.getAmount()) + ")'}");
-                        //System.out.println(old.toString());
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", ""); //new traceNo
@@ -474,11 +462,14 @@ public class tokenDao extends dao<token> {
                             p.setTransTime(res.getString("transTime"));
                             p.setTransDate(res.getString("transDate"));
                             p.setRespondCode(res.getString("respondCode"));
+                            p.setCode("EZ910");
                             old.getTrace().add(p);
                             old.setStatus(SUCCESS);
+                            old.setTraceNo(traceNo);
+                            res.put("code", "EZ910");
+                            res.put("msg", "Success");
                             old.setResponse(res.toString());
                             update(old);
-                            old.setResponse("{'code':'EZ910','msg':'Гүйлгээ амжилттай буцаагдлаа !'}");
                         } else {
                             System.out.println("FAIL");
                             old.setStatus(FAIL);

@@ -26,26 +26,14 @@ public class purchase {
     private String transDate;
     @Column
     private String respondCode;
+    @Column
+    private String code;
+    @Column
+    private String msg;
 
     @ManyToOne
     @JoinColumn(name = "traceNo", referencedColumnName = "traceNo", insertable = false, updatable = false)
     private token token;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getTraceNo() {
-        return traceNo;
-    }
-
-    public void setTraceNo(String traceNo) {
-        this.traceNo = traceNo;
-    }
 
     public String getSystemRef() {
         return systemRef;
@@ -93,5 +81,37 @@ public class purchase {
 
     public void setRespondCode(String respondCode) {
         this.respondCode = respondCode;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public mn.ezpay.entity.token getToken() {
+        return token;
+    }
+
+    public void setToken(mn.ezpay.entity.token token) {
+        this.token = token;
+    }
+
+    public String getTraceNo() {
+        return traceNo;
+    }
+
+    public void setTraceNo(String traceNo) {
+        this.traceNo = traceNo;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
     }
 }

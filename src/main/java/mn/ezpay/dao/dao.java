@@ -23,13 +23,19 @@ public class dao<T> {
     public Session session;
 
     public Session getSession() {
+//        if (session.isCl)
+//        return (session = sessionFactory.getCurrentSession());
+//        //return (session = sessionFactory.openSession());
+        if (session != null && session.isOpen()) {
+            session.clear();
+            return (session = sessionFactory.getCurrentSession());
+        }
         return (session = sessionFactory.getCurrentSession());
-        //return (session = sessionFactory.openSession());
     }
 
     public void close() {
-       //if (session != null && session.isOpen())
-            //session.close();
+       if (session != null && session.isOpen())
+            session.close();
     }
 
     public void save(final T entity) {
@@ -46,13 +52,13 @@ public class dao<T> {
     }
 
     public T update(final T entity) {
-
         getSession();
         session.getTransaction().begin();
         try {
-            session.merge(entity);
+            session.update(entity);
             session.getTransaction().commit();
         } catch (RuntimeException ex) {
+            ex.printStackTrace();
             session.getTransaction().rollback();
         } finally {
             close();

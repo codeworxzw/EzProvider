@@ -54,10 +54,6 @@ public class tokenService {
         return dao.payment(entity, findToken(entity.getToken()));
     }
 
-    public token pvoid(token entity) {
-        return dao.pvoid(entity);
-    }
-
     public token check(token token) {
         return dao.check(token);
     }

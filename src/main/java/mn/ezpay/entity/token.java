@@ -1,6 +1,8 @@
 package mn.ezpay.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
 
@@ -64,6 +66,7 @@ public class token implements java.io.Serializable {
     @Column
     private String merchantId;
 
+    @JsonIgnore
     @JsonIgnoreProperties(ignoreUnknown = true)
     @OneToMany(mappedBy = "token", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<purchase> trace;
@@ -184,5 +187,4 @@ public class token implements java.io.Serializable {
     public void setMerchant(merchant_only merchant) {
         this.merchant = merchant;
     }
-
 }

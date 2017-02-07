@@ -50,21 +50,22 @@ public class paymentController {
     }
 
     @RequestMapping(value = "token/loyalty", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Hashtable findLoyalty(@RequestParam String page) {
+    public Hashtable findLoyalty(@RequestParam String token) {
         try {
-            List list = service.findLoyalty(page);
+            List list = service.findLoyalty(token);
             Hashtable loyalty = new Hashtable();
-            if (list != null) {
+            if (list.size() > 0) {
                 for (int i = 0; i < list.size(); i++) {
                     cards c = (cards) list.get(i);
-                    String data = new String(vault.decrypt(base64.decode(c.getEnc()), "C:/Files/Projects/EzProvider/src/main/resources/golomt/default.der").
-                            getBytes(Charset.forName("UTF-8")));
+                    String data = new String(vault.decrypt(base64.decode(c.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                     JSONObject json = new JSONObject(data);
                     if (json.getString("loyalty").equals("true")) {
                         loyalty.put(json.getString("bank_name"), json.getString("card_id"));
                     }
                 }
-            }
+            } else
+                loyalty.put("msg", "bad token.");
+
             return loyalty;
         } catch (Exception ex) {
 
@@ -78,7 +79,6 @@ public class paymentController {
         return service.token5(walletId, hashed);
     }
 
-
     @RequestMapping(value = "token/request", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public token request(@RequestBody token token) {
         return service.request(token);
@@ -87,17 +87,5 @@ public class paymentController {
     @RequestMapping(value = "token/check", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public token check(@RequestBody token token) {
         return service.check(token);
-    }
-
-    @RequestMapping(value = "token/payment", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public token payment() {
-        token token = service.findToken("0596d1ba0d0fad259c5a701bd2c39cae1a124924a2090cf78372f0b15bcf7392");
-        return service.payment(token);
-    }
-
-    @RequestMapping(value = "token/void", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public token pvoid() {
-        token token = service.findToken("0596d1ba0d0fad259c5a701bd2c39cae1a124924a2090cf78372f0b15bcf7392");
-        return service.pvoid(token);
     }
 }
