@@ -49,4 +49,8 @@ public class walletService {
     public List<wallets> findAll(int page, int size, String order, String dir) {
         return dao.findAll(page, size, order, dir);
     }
+
+    public String test(String user, String pass) {
+        return dao.test(user, pass);
+    }
 }

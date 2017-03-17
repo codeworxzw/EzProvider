@@ -1,7 +1,15 @@
 package mn.ezpay.msg;
 
+import mn.ezpay.security.base64;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -36,5 +44,51 @@ public class msgGW {
         }
 
         return ret;
+    }
+
+    public static String getJson(String serverUrl, String username, String pass){
+
+        StringBuilder sb = new StringBuilder();
+
+        String http = serverUrl;
+
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL(http);
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setDoOutput(true);
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setUseCaches(false);
+            urlConnection.setConnectTimeout(50000);
+            urlConnection.setReadTimeout(50000);
+            urlConnection.setRequestProperty("Content-Type", "application/plain");
+            urlConnection.connect();
+            //You Can also Create JSONObject here
+            OutputStreamWriter out = new OutputStreamWriter(urlConnection.getOutputStream());
+            String jsonobject = "appId=ZvUU9LUEVzaWRmR0JORk&appSecret=N2FtWnZVVTlMVUVWemFX&loginname="+username+"&password="+pass;
+            out.write(jsonobject);// here i sent the parameter
+            out.close();
+            int HttpResult = urlConnection.getResponseCode();
+            if (HttpResult == HttpURLConnection.HTTP_OK) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(
+                        urlConnection.getInputStream(), "utf-8"));
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                }
+                br.close();
+                System.out.println(sb);
+                return base64.encode(sb.toString().getBytes("UTF-8"));
+            } else {
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (urlConnection != null)
+                urlConnection.disconnect();
+        }
+        return null;
     }
 }

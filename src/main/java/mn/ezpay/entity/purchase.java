@@ -35,6 +35,10 @@ public class purchase {
     @JoinColumn(name = "traceNo", referencedColumnName = "traceNo", insertable = false, updatable = false)
     private token token;
 
+    @ManyToOne
+    @JoinColumn(name = "traceNo", referencedColumnName = "oldTraceNo", insertable = false, updatable = false)
+    private token tokenOld;
+
     public String getSystemRef() {
         return systemRef;
     }
@@ -114,4 +118,6 @@ public class purchase {
     public void setMsg(String msg) {
         this.msg = msg;
     }
+
+
 }

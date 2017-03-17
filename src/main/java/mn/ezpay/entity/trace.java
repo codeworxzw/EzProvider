@@ -13,7 +13,7 @@ public class trace implements java.io.Serializable {
     @Column
     private String merchantId;
     @Column
-    private String batchNo;
+    private int batchNo;
     @Column
     private int traceNo;
 
@@ -41,11 +41,11 @@ public class trace implements java.io.Serializable {
         this.merchantId = merchantId;
     }
 
-    public String getBatchNo() {
+    public int getBatchNo() {
         return batchNo;
     }
 
-    public void setBatchNo(String batchNo) {
+    public void setBatchNo(int batchNo) {
         this.batchNo = batchNo;
     }
 

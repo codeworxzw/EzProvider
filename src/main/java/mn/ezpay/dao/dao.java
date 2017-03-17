@@ -11,6 +11,7 @@ import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @Repository
@@ -55,7 +56,7 @@ public class dao<T> {
         getSession();
         session.getTransaction().begin();
         try {
-            session.update(entity);
+            session.saveOrUpdate(entity);
             session.getTransaction().commit();
         } catch (RuntimeException ex) {
             ex.printStackTrace();
@@ -155,7 +156,7 @@ public class dao<T> {
     public <T> List<T> findAll(final Class<T> type, int page, int size, String order, String dir) {
         getSession();
         session.getTransaction().begin();
-        List<T> list = null;
+        List<T> list = new LinkedList<>();
         try {
             crit = session.createCriteria(type);
             crit.setFirstResult((page - 1) * size);

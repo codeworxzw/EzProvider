@@ -2,6 +2,7 @@ package mn.ezpay.controller;
 
 import mn.ezpay.entity.cards;
 import mn.ezpay.entity.multitoken;
+import mn.ezpay.entity.settlement;
 import mn.ezpay.entity.token;
 import mn.ezpay.payment.vault;
 import mn.ezpay.security.base64;
@@ -87,5 +88,10 @@ public class paymentController {
     @RequestMapping(value = "token/check", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public token check(@RequestBody token token) {
         return service.check(token);
+    }
+
+    @RequestMapping(value = "token/settlement", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public settlement settlement(@RequestBody settlement settlement) {
+        return service.settlement(settlement);
     }
 }

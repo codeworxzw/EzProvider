@@ -26,6 +26,7 @@ public class tokenDao extends dao<token> {
     private static int CONFIRMED = 1;
     private static int CANCELLED = 4;
     private static int USER_ACCEPT = 2;
+    private static int SETTLEMENT = 7;
 
     private static int BARCODE13 = 9;
     private static int CARD_LENGTH = 16;
@@ -161,21 +162,34 @@ public class tokenDao extends dao<token> {
         return tokens;
     }
 
-
-    public static void getTraceNo()
-    {
+    public String batchNo(String terminalId, String merchantId)  {
+        String batchNo = "0";
+        getSession();
+        session.getTransaction().begin();
         try {
-            String text = "Your sample content to save in a text file.";
-            BufferedWriter out = new BufferedWriter(new FileWriter("c:\\trace.txt"));
-            out.write(text);
-            out.close();
-        }
-        catch (IOException e)
-        {
-            System.out.println("Exception ");
-        }
+            crit = session.createCriteria(trace.class);
+            crit.add(Restrictions.eq("terminalId", terminalId));
+            crit.add(Restrictions.eq("merchantId", merchantId));
+            List<trace> list = crit.list();
 
-        return ;
+            if (list.size() > 0) {
+                trace t = list.get(0);
+                t.setBatchNo(t.getBatchNo() + 1);
+                session.saveOrUpdate(t);
+                batchNo = t.getBatchNo() + "";
+                while (batchNo.length() < 6) {
+                    batchNo = "0" + batchNo;
+                }
+            }
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+            ex.printStackTrace();
+        } finally {
+            close();
+        }
+        return batchNo;
     }
 
     public String traceNo(String terminalId, String merchantId)  {
@@ -246,6 +260,151 @@ public class tokenDao extends dao<token> {
         return findToken(token);
     }
 
+    public void batch_upload(settlement entity) {
+        getSession();
+        try {
+            session.getTransaction().begin();
+            Query query = session.getNamedQuery("dayList");
+            query.setParameter("_day", entity.get_day());
+            query.setParameter("merchantData", entity.getMerchantData());
+            List<token> list = query.list();
+            session.getTransaction().commit();
+            make make = new make();
+            int r = 0;
+            for (int i = 0; i < list.size(); i++) {
+                token token = list.get(i);
+                JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(token.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+                JSONObject card = null;
+                if ("short".equals(token.getType()))
+                    card = findCard(hashed, findWallet(token.getWalletId()), token);
+                else
+                    card = hashed;
+
+                JSONObject bankEntity = new JSONObject();
+                bankEntity.put("card_id", card.getString("card_id"));
+                bankEntity.put("amount", token.getAmount());
+                bankEntity.put("expire", card.getString("expire"));
+                bankEntity.put("terminalId", token.getMerchantData().split(":")[0]);
+                bankEntity.put("bankMerchantId", token.getMerchantData().split(":")[1]);
+                bankEntity.put("traceNo", traceNo(token.getMerchantData().split(":")[0], token.getMerchantData().split(":")[1]));
+                bankEntity.put("batchNo", batchNo(entity.getMerchantData().split(":")[0], entity.getMerchantData().split(":")[1]));
+
+                if (token.getAmount() < 0) {
+                    bankEntity.put("systemRef", token.getTraceOld().get(0).getSystemRef());
+                    bankEntity.put("approveCode", token.getTraceOld().get(0).getApproveCode());
+                    bankEntity.put("amount", token.getTraceOld().get(0).getAmount());
+                    bankEntity.put("transTime", token.getTraceOld().get(0).getTransTime());
+                    bankEntity.put("transDate", token.getTraceOld().get(0).getTransDate());
+                    bankEntity.put("oldTraceNo", token.getOldTraceNo());
+                } else {
+                    bankEntity.put("systemRef", token.getTrace().get(0).getSystemRef());
+                    bankEntity.put("approveCode", token.getTrace().get(0).getApproveCode());
+                    bankEntity.put("amount", token.getTrace().get(0).getAmount());
+                    bankEntity.put("transTime", token.getTrace().get(0).getTransTime());
+                    bankEntity.put("transDate", token.getTrace().get(0).getTransDate());
+                    bankEntity.put("oldTraceNo", token.getTraceNo());
+                }
+                JSONObject res = make.makePayment(type.golomt, "batch", bankEntity);
+                if (res.getString("respondCode").equals("3030")) {
+                   r++;
+                } else {
+
+                }
+            }
+
+            if (r == list.size()) {
+                getSession();
+                session.getTransaction().begin();
+                Query query1 = session.getNamedQuery("settleCommit");
+                query1.setParameter("day", entity.get_day());
+                query1.setParameter("merchantData", entity.getMerchantData());
+                query1.setParameter("merchantId", entity.getMerchantId());
+                query1.setParameter("amount", entity.getAmount());
+                query1.setParameter("count", r);
+                query1.setParameter("respondCode", "3030");
+                query1.executeUpdate();
+                session.getTransaction().commit();
+            }
+        } catch (Exception e) {
+            //session.getTransaction().rollback();
+            e.printStackTrace();
+        } finally {
+            close();
+        }
+    }
+
+    public settlement settlement(settlement entity) {
+        getSession();
+        try {
+            make make = new make();
+            session.getTransaction().begin();
+            Query query = session.getNamedQuery("dayList");
+            query.setParameter("_day", entity.get_day());
+            query.setParameter("merchantData", entity.getMerchantData());
+            List<token> list = query.list();
+            session.getTransaction().commit();
+            if (list.size() > 0) {
+                double amount = 0;
+                double ramount = 0;
+                int q = 0, p = 0;
+                for (int i = 0; i < list.size(); i++) {
+                    if (list.get(i).getAmount() > 0) {
+                        q++;
+                        amount += Math.abs(list.get(i).getAmount());
+                    }
+                    if (list.get(i).getAmount() < 0) {
+                        p++;
+                        ramount += Math.abs(list.get(i).getAmount());
+                    }
+                }
+                q -= p;
+                amount -= ramount;
+
+                entity.setAmount(amount);
+                JSONObject bankEntity = new JSONObject();
+
+                String total = vault.settleamount(q, amount, p, ramount);
+                //String total = vault.amount(amount, 90);
+                bankEntity.put("amount", total);
+                bankEntity.put("terminalId", entity.getMerchantData().split(":")[0]);
+                bankEntity.put("bankMerchantId", entity.getMerchantData().split(":")[1]);
+                bankEntity.put("batchNo", batchNo(entity.getMerchantData().split(":")[0], entity.getMerchantData().split(":")[1]));
+                bankEntity.put("traceNo", traceNo(entity.getMerchantData().split(":")[0], entity.getMerchantData().split(":")[1]));
+
+                JSONObject res = make.makePayment(type.golomt, "settlement", bankEntity);
+                if (res.getString("respondCode").equals("3030")) {
+                    bankEntity.put("processCode", "960000");
+                    res = make.makePayment(type.golomt, "settlement", bankEntity);
+                    entity.setRespondCode(res.getString("respondCode"));
+
+                    Query query1 = session.getNamedQuery("settleCommit");
+                    query1.setParameter("day", entity.get_day());
+                    query1.setParameter("merchantData", entity.getMerchantData());
+                    query1.setParameter("merchantId", entity.getMerchantId());
+                    query1.setParameter("amount", amount);
+                    query1.setParameter("count", q);
+                    query1.setParameter("respondCode", res.getString("respondCode"));
+                    query1.executeUpdate();
+
+                    return entity;
+                } else {
+                    entity.setRespondCode(res.getString("respondCode"));
+                    batch_upload(entity);
+                    return entity;
+                }
+            } else {
+                System.out.println("settlement not found");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            session.getTransaction().rollback();
+        } finally {
+            close();
+        }
+
+        return entity;
+    }
+
     public token check(token entity) {
         String token = tokenFull(entity); //mini baiwal tokenii buheldeh
         if (token.length() > BARCODE13) {
@@ -260,9 +419,12 @@ public class tokenDao extends dao<token> {
                         old.setMerchantId(entity.getMerchantId());
                         old.setMerchantData(entity.getMerchantData());
                         old.setAmount(entity.getAmount());
+                        if (entity.getAmount() < 0)
+                            old.setOldTraceNo(entity.getOldTraceNo()); //butsaaltiin ueiin traceNo
                         session.merge(old);
                         session.getTransaction().commit();
                     } catch (Exception ex) {
+                        ex.printStackTrace();
                         session.getTransaction().rollback();
                     } finally {
                         close();
@@ -277,6 +439,7 @@ public class tokenDao extends dao<token> {
                         session.merge(old);
                         session.getTransaction().commit();
                     } catch (Exception ex) {
+                        ex.printStackTrace();
                         session.getTransaction().rollback();
                     } finally {
                         close();
@@ -318,9 +481,9 @@ public class tokenDao extends dao<token> {
 
     public token pvoid(token entity, token old) {
         try {
-            if (old.getStatus() == USER_ACCEPT && old.getMerchantData().equals(entity.getMerchantData())) {
+            if (old.getStatus() == USER_ACCEPT) {
                 make make = new make();
-                JSONObject hashed = new JSONObject(vault.decrypt(Base64.decode(entity.getHashed()), getClass().getClassLoader().getResource("cfg/default.der").getFile()));
+                JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 JSONObject card = null;
                 if ("short".equals(old.getType()))
                     card = findCard(hashed, findWallet(entity.getWalletId()), old);
@@ -328,7 +491,8 @@ public class tokenDao extends dao<token> {
                     card = hashed;
 
                 if (card != null) {
-                    JSONObject bankEntity = new JSONObject(jsonString(entity));
+                    System.out.println("card : "+ card.getString("card_id").replaceAll(" ", ""));
+                    JSONObject bankEntity = new JSONObject();
                     bankEntity.put("card_id", card.getString("card_id"));
                     bankEntity.put("amount", old.getAmount());
                     bankEntity.put("expire", card.getString("expire"));
@@ -336,12 +500,13 @@ public class tokenDao extends dao<token> {
                     bankEntity.put("bankMerchantId", old.getMerchantData().split(":")[1]);
                     bankEntity.put("traceNo", traceNo(old.getMerchantData().split(":")[0], old.getMerchantData().split(":")[1]));
 
-                    bankEntity.put("systemRef", old.getTrace().get(0).getSystemRef());
-                    bankEntity.put("approveCode", old.getTrace().get(0).getApproveCode());
-                    bankEntity.put("amount", old.getTrace().get(0).getAmount());
-                    bankEntity.put("transTime", old.getTrace().get(0).getTransTime());
-                    bankEntity.put("transDate", old.getTrace().get(0).getTransDate());
-                    bankEntity.put("oldTraceNo", old.getTrace().get(0).getTraceNo());
+                    bankEntity.put("systemRef", old.getTraceOld().get(0).getSystemRef());
+                    bankEntity.put("approveCode", old.getTraceOld().get(0).getApproveCode());
+                    bankEntity.put("amount", old.getTraceOld().get(0).getAmount());
+                    bankEntity.put("transTime", old.getTraceOld().get(0).getTransTime());
+                    bankEntity.put("transDate", old.getTraceOld().get(0).getTransDate());
+                    bankEntity.put("oldTraceNo", old.getOldTraceNo());
+                    System.out.println("old = "+old.getOldTraceNo());
 
                     JSONObject res = make.makePayment(type.golomt, "void", bankEntity);
                     if (res.getString("respondCode").equals("3030")) {
@@ -356,10 +521,9 @@ public class tokenDao extends dao<token> {
                         return old;
                     }
                 }
-
             }
         } catch (Exception ex) {
-
+            ex.printStackTrace();
         }
 
         return entity;
@@ -393,6 +557,7 @@ public class tokenDao extends dao<token> {
             }
             System.out.println("CONFIRM CARD END");
         } catch (Exception ex) {
+            ex.printStackTrace();
         }
 
         return card;
@@ -427,7 +592,7 @@ public class tokenDao extends dao<token> {
                         ex.printStackTrace();
                     }
                     //if (res != null) res.put("respondCode", "99");
-                    if (res != null && (res.getString("respondCode").equals("3030") || res.getString("respondCode").equals("3035"))) {
+                    if (res != null && (res.getString("respondCode").equals("3030"))) {
                         purchase p = new purchase();
                         List<purchase> pur = new LinkedList<purchase>();
                         p.setApproveCode(res.getString("approveCode"));
@@ -436,6 +601,7 @@ public class tokenDao extends dao<token> {
                         p.setAmount(res.getString("amount"));
                         p.setTransTime(res.getString("transTime"));
                         p.setTransDate(res.getString("transDate"));
+                        res.put("respondCode", "3030");
                         p.setRespondCode(res.getString("respondCode"));
                         p.setCode("EZ910");
                         res.put("msg", "Success");
@@ -448,13 +614,14 @@ public class tokenDao extends dao<token> {
                         update(old);
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
-                            bankEntity.put("traceNo", ""); //new traceNo
+                            bankEntity.put("traceNo", traceNo); //new traceNo
                             bankEntity.put("systemRef", res.getString("systemRef"));
                             bankEntity.put("approveCode", res.getString("approveCode"));
                             bankEntity.put("amount", res.getString("amount"));
                             res = make.makePayment(bankSwitch(card.getString("bank_name")), "reversal", bankEntity);
 
                             purchase p = new purchase();
+                            List<purchase> pur = new LinkedList<purchase>();
                             p.setApproveCode(res.getString("approveCode"));
                             p.setTraceNo(res.getString("traceNo"));
                             p.setSystemRef(res.getString("systemRef"));
@@ -463,11 +630,13 @@ public class tokenDao extends dao<token> {
                             p.setTransDate(res.getString("transDate"));
                             p.setRespondCode(res.getString("respondCode"));
                             p.setCode("EZ910");
-                            old.getTrace().add(p);
-                            old.setStatus(SUCCESS);
+                            res.put("msg", "Success");
+                            pur.add(p);
+
+                            old.setTrace(pur);
+                            old.setStatus(CANCELLED);
                             old.setTraceNo(traceNo);
                             res.put("code", "EZ910");
-                            res.put("msg", "Success");
                             old.setResponse(res.toString());
                             update(old);
                         } else {

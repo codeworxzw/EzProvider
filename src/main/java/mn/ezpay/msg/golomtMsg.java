@@ -23,6 +23,66 @@ public class golomtMsg extends msg {
 
     public byte[] purchase(JSONObject json) {
         try {
+            InputStream fis = new FileInputStream(getClass().getClassLoader().getResource("golomt/request_purchase.xml").getFile());
+            GenericPackager packager = new GenericPackager(fis);
+            ISOMsg isoMsg = new ISOMsg();
+            isoMsg.setPackager(packager);
+            isoMsg.setMTI("0200");
+            byte[] header = {0x00, 0x4a, 0x60, 0x00, 0x03, 0x00, 0x00};
+            isoMsg.setHeader(header);//"5163815415811069"
+            isoMsg.set(2, json.getString("card_id").replaceAll(" ", "").trim());
+            isoMsg.set(3, "000000");
+            isoMsg.set(4, vault.amount(json.getDouble("amount")));
+            isoMsg.set(11, json.getString("traceNo"));
+            isoMsg.set(14, "1801");
+            isoMsg.set(22, "0011");
+            isoMsg.set(24, "0003");
+            isoMsg.set(25, "00");
+
+            isoMsg.set(41, json.getString("terminalId"));
+            isoMsg.set(42, json.getString("bankMerchantId"));
+            isoMsg.set(62, "000001");
+
+            buildIsoMsg = isoMsg;
+            buildIsoMsg.recalcBitMap();
+            logISOMsg(buildIsoMsg);
+            byte[] send_PackedRequestData = buildIsoMsg.pack();
+            byte[] data = readBinary(getClass().getClassLoader().getResource("golomt/purchase.dat").getFile().substring(1));
+            byte[] data_after = new byte[data.length];
+
+            for (int i = 0; i <= 17; i++)
+                data_after[i] = data[i];
+
+            for (int i = 19; i <= 35; i++)
+                data_after[i-1] = send_PackedRequestData[i];
+
+            for (int i = 36; i <= 45; i++)
+                data_after[i] = data[i];
+
+            for (int i = 51; i <= 57; i++)
+                data_after[i-5] = send_PackedRequestData[i];
+
+
+            for (int i = 61; i <= 75; i++)
+                data_after[i-7] = send_PackedRequestData[i];
+
+            for (int i = 76; i <= 81; i++)
+                data_after[i-6] = send_PackedRequestData[i];
+
+            data_after[69] = data_after[68];
+            data_after[53] = data[53];
+            data_after[68] = 0;
+
+            return data_after;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public byte[] purchase1(JSONObject json) {
+        try {
             InputStream fis = new FileInputStream(getClass().getClassLoader().getResource("golomt/request_basic.xml").getFile());
             GenericPackager packager = new GenericPackager(fis);
             ISOMsg isoMsg = new ISOMsg();
@@ -102,7 +162,6 @@ public class golomtMsg extends msg {
 
     public byte[] purchase_reversal(JSONObject json) {
         try {
-
             InputStream fis = new FileInputStream(getClass().getClassLoader().getResource("golomt/request_reversal.xml").getFile());
             GenericPackager packager = new GenericPackager(fis);
             ISOMsg isoMsg = new ISOMsg();
@@ -110,7 +169,7 @@ public class golomtMsg extends msg {
             isoMsg.setMTI("0400");
             byte[] header = {0x00, 0x6f, 0x60, 0x00, 0x03, 0x00, 0x00};
             isoMsg.setHeader(header);
-            isoMsg.set(2, json.getString("card_id"));
+            isoMsg.set(2, json.getString("card_id").replaceAll(" ",""));
             isoMsg.set(3, "010000");
             isoMsg.set(4, json.getString("amount"));
             isoMsg.set(11, json.getString("traceNo"));
@@ -174,7 +233,8 @@ public class golomtMsg extends msg {
             buildIsoMsg.recalcBitMap();
             byte[] send_PackedRequestData = buildIsoMsg.pack();
             byte[] data_after = settlement_default();
-
+            System.out.println(vault.bytesToHex(data_after));
+            System.out.println(vault.bytesToHex(send_PackedRequestData));
             try {
                 if (json.getString("processCode").equals("960000"))
                     data_after[17] = send_PackedRequestData[18];
@@ -182,18 +242,22 @@ public class golomtMsg extends msg {
 
             }
 
+            for (int i = 20; i <= 22; i++)
+                data_after[i] = send_PackedRequestData[i + 1];
+
             for (int i = 25; i <= 32; i++)
                 data_after[i] = send_PackedRequestData[i + 2];
 
             for (int i = 33; i <= 47; i++)
                 data_after[i] = send_PackedRequestData[i + 4];
 
-            for (int i = 33; i <= 47; i++)
+            for (int i = 50; i <= 55; i++)
                 data_after[i] = send_PackedRequestData[i + 4];
 
-            for (int i = 57; i < 87; i++)
-                data_after[i] = send_PackedRequestData[i + 3];
+            for (int i = 58; i < 147; i++)
+                data_after[i] = send_PackedRequestData[i + 4];
 
+            System.out.println(vault.bytesToHex(data_after));
             logISOMsg(buildIsoMsg);
             return data_after;
         } catch (Exception ex) {
@@ -212,14 +276,14 @@ public class golomtMsg extends msg {
             isoMsg.setMTI("0320");
             byte[] header = {0x00, 0x7b, 0x60, 0x00, 0x03, 0x00, 0x00};
             isoMsg.setHeader(header);
-            isoMsg.set(2, json.getString("card_id"));
+            isoMsg.set(2, json.getString("card_id").replaceAll(" ",""));
             isoMsg.set(3, "010001");
             isoMsg.set(4, json.getString("amount"));
             isoMsg.set(11, json.getString("traceNo"));
             isoMsg.set(12, json.getString("transTime"));//HHMMSS
             isoMsg.set(13, json.getString("transDate")); //MMDD
             isoMsg.set(14, json.getString("expire").replace("/", ""));
-            isoMsg.set(22, "022");
+            isoMsg.set(22, "021");
             isoMsg.set(24, "003");
             isoMsg.set(25, "00");
             isoMsg.set(37, json.getString("systemRef"));
@@ -228,8 +292,9 @@ public class golomtMsg extends msg {
             isoMsg.set(41, json.getString("terminalId"));
             isoMsg.set(42, json.getString("bankMerchantId"));
             //isoMsg.set(60, "0200000002            ");
+            isoMsg.set(60, json.getString("batchNo"));//
             isoMsg.set(62, json.getString("oldTraceNo"));
-            System.out.println("Respond code " + json.getString("respondCode"));
+           // System.out.println("Respond code " + json.getString("respondCode"));
             buildIsoMsg = isoMsg;
             byte[] send_PackedRequestData = buildIsoMsg.pack();
 
@@ -256,8 +321,11 @@ public class golomtMsg extends msg {
                 data_after[i] = send_PackedRequestData[i + 4];
 
             for (int i = 118; i <= 124; i++)
-                data_after[i] = send_PackedRequestData[i - 21];
+                data_after[i] = send_PackedRequestData[i - 13];
 
+
+            System.out.println(vault.bytesToHex(send_PackedRequestData));
+            System.out.println(vault.bytesToHex(data_after));
             logISOMsg(buildIsoMsg);
             return data_after;
         } catch (Exception ex) {
@@ -276,7 +344,7 @@ public class golomtMsg extends msg {
             isoMsg.setMTI("0200");
             byte[] header = {0x00, 0x6f, 0x60, 0x00, 0x03, 0x00, 0x00};
             isoMsg.setHeader(header);
-            isoMsg.set(2, json.getString("card_id"));
+            isoMsg.set(2, "5163815415811069");//json.getString("card_id"));
             isoMsg.set(3, "020000");
             isoMsg.set(4, json.getString("amount"));
             isoMsg.set(11, json.getString("traceNo"));
@@ -326,8 +394,14 @@ public class golomtMsg extends msg {
     }
 
     public byte[] settlement_default() {
-        String str = "0056600003000005002020010000c000129200000000110003313231323131333830303030303030303030323436333800063030303030310030303031303030303030303031303030303030303030303030303030303030";
-        return vault.hexStringToByteArray(str);
+        //String str = "0056600003000005002020010000c00012920000000011000331323132313133383030303030303030303032343633380006303030303031 00 30303031 30 30 30 30 30 30 30 30 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30";
+        byte[] data = null;
+        try {
+            data = readBinary(getClass().getClassLoader().getResource("golomt/settlement.dat").getFile().substring(1));
+        } catch (Exception ex) {
+
+        }
+        return data;
     }
 
     public byte[] batch_upload_default() {
@@ -346,13 +420,13 @@ public class golomtMsg extends msg {
         if (connection.isConnected()) {
             int q = 0;
             while (true) {
-                System.out.println("-- RESPONSE recieved---");
+                System.out.println("-- RESPONSE recieved---"+bank.getMode());
 
                 receive_PackedResponseData = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 char[] buf = new char[58];
                 for (int i = 0; i < buf.length; i++) buf[i] = ' ';
                 receive_PackedResponseData.read(buf);
-                System.out.println("Pre Response (PURCHASE) (Orginal String): " + buf.length + " " + new String(buf));
+//                System.out.println("Pre Response (Orginal String): " + buf.length + " " + new String(buf));
                 if (buf[10] != ' ') {
                     if (bank.getMode().equals("purchase")) {
                         System.out.println("Response (PURCHASE) (Orginal String): " + new String(buf));
@@ -378,6 +452,17 @@ public class golomtMsg extends msg {
                         res.put("respondCode", "3" + buf[42] + "3" + buf[43]);
                     } else if (bank.getMode().equals("reversal")) {
                         System.out.println("Response (REVERSAL) (Orginal String): " + new String(buf));
+
+                        res.put("traceNo", json.getString("traceNo"));
+                        res.put("systemRef", vault.getNumber(buf, 30, 12));
+                        res.put("cardNo", vault.formatCard(json.getString("card_id"))); //nemegdel
+                        res.put("terminalId", json.getString("terminalId"));//nemegdel
+                        res.put("bankMerchantId", json.getString("bankMerchantId"));//nemegdel
+                        res.put("approveCode", vault.getNumber(buf, 42, 6));
+                        res.put("transTime", vault.getString(buf, 23, 3));
+                        res.put("transDate", vault.getString(buf, 26, 2));
+                        res.put("amount", vault.amount(json.getDouble("amount")));
+
                         System.out.println("Payment result : " + ((buf[42] + "" + buf[43])));
                         res.put("respondCode", "3" + buf[42] + "3" + buf[43]);
                     } else if (bank.getMode().equals("settlement")) {

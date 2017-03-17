@@ -46,6 +46,7 @@
                     <value>mn.ezpay.entity.providers</value>
                     <value>mn.ezpay.entity.logins</value>
                     <value>mn.ezpay.entity.multitoken</value>
+                    <value>mn.ezpay.entity.settlement</value>
                 </list>
             </property>
             <property name="hibernateProperties">

@@ -28,6 +28,9 @@ public class cardsController {
             if (entity.getPpin() != null && entity.getPpin().length() > 0) {
                 service.save(entity);
                 return entity;
+            } else {
+                service.save(entity);
+                return entity;
             }
         }
 

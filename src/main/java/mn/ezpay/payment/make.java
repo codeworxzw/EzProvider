@@ -102,8 +102,8 @@ public class make {
                 }
             }
         } catch (Exception ex) {
-            System.out.println("Payment SSL problem !");
             ex.printStackTrace();
+            System.out.println("Payment SSL problem !");
             return res;
         }
         return res;

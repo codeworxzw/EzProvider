@@ -34,6 +34,16 @@ import java.util.List;
                 name = "disableTokens",
                 query = "update multitoken set status='inactive' where walletId=:walletId",
                 resultClass = multitoken.class
+        ),
+        @NamedNativeQuery(
+                name = "dayList",
+                query = "SELECT * FROM token WHERE status=3 and DATE_FORMAT(_date, '%Y%m%d')=:_day and _date>=(select _date from settlements where respondCode='3030' order by _date desc limit 0,1) and merchantData=:merchantData",
+                resultClass = token.class
+        ),
+        @NamedNativeQuery(
+                name = "settleCommit",
+                query = "INSERT INTO settlements (merchantId, count, amount, _day, respondCode, merchantData) VALUES (:merchantId,:count,:amount,:day,:respondCode,:merchantData)",
+                resultClass = settlement.class
         )
 })
 @Table(name = "token")
@@ -62,6 +72,8 @@ public class token implements java.io.Serializable {
     @Column
     private String traceNo;
     @Column
+    private String oldTraceNo;
+    @Column
     private String type;
     @Column
     private String merchantId;
@@ -70,6 +82,11 @@ public class token implements java.io.Serializable {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @OneToMany(mappedBy = "token", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<purchase> trace;
+
+    @JsonIgnore
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @OneToMany(mappedBy = "tokenOld", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<purchase> traceOld;
 
     @OneToOne
     @NotFound(action = NotFoundAction.IGNORE)
@@ -186,5 +203,21 @@ public class token implements java.io.Serializable {
 
     public void setMerchant(merchant_only merchant) {
         this.merchant = merchant;
+    }
+
+    public String getOldTraceNo() {
+        return oldTraceNo;
+    }
+
+    public void setOldTraceNo(String oldTraceNo) {
+        this.oldTraceNo = oldTraceNo;
+    }
+
+    public List<purchase> getTraceOld() {
+        return traceOld;
+    }
+
+    public void setTraceOld(List<purchase> traceOld) {
+        this.traceOld = traceOld;
     }
 }

@@ -5,6 +5,7 @@ import mn.ezpay.security.rsaencryption;
 import javax.crypto.Cipher;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -43,6 +44,56 @@ public class vault {
         }
 
         return am;
+    }
+
+
+    public static String amount(double amount, int p) {
+        amount = round(amount, 2);
+        String am = amount + "";
+        if (am.endsWith(".0")) am = am + "0";
+        am = am.replace(".", "");
+        while (am.length() < p) {
+            am = "0" + am;
+        }
+
+        return am;
+    }
+
+    public static String settleamount(int q, double amount, int p, double ramount) {
+        amount = round(amount, 2);
+        String am = amount + "";
+        if (am.endsWith(".0")) am = am + "0";
+        am = am.replace(".", "");
+        while (am.length() < 12) {
+            am = "0" + am;
+        }
+
+        String qm = q + "";
+        while (qm.length() < 3) {
+            qm = "0" + qm;
+        }
+
+        ramount = round(ramount, 2);
+        String ram = ramount + "";
+        if (ram.endsWith(".0")) ram = ram + "0";
+        ram = ram.replace(".", "");
+        while (ram.length() < 12) {
+            ram = "0" + ram;
+        }
+
+        String pm = p + "";
+        while (pm.length() < 3) {
+            pm = "0" + pm;
+        }
+
+
+        String bm = qm+am;//+pm+ram
+
+        while (bm.length() < 90) {
+            bm = bm + "0";
+        }
+
+        return bm;
     }
 
     public static byte[] hexStringToByteArray(String amount) {
@@ -197,10 +248,24 @@ public class vault {
         return formatter.format(price);
     }
 
-    private static String bytesToHex(byte[] bytes) {
+    public static String bytesToHex(byte[] bytes) {
         StringBuffer result = new StringBuffer();
         for (byte byt : bytes) result.append(Integer.toString((byt & 0xff) + 0x100, 16).substring(1));
         return result.toString();
+    }
+
+    public static byte[] fromHexString(final String encoded) {
+        if ((encoded.length() % 2) != 0)
+            throw new IllegalArgumentException("Input string must contain an even number of characters");
+
+        final byte result[] = new byte[encoded.length()/2];
+        final char enc[] = encoded.toCharArray();
+        for (int i = 0; i < enc.length; i += 2) {
+            StringBuilder curr = new StringBuilder(2);
+            curr.append(enc[i]).append(enc[i + 1]);
+            result[i/2] = (byte) Integer.parseInt(curr.toString(), 16);
+        }
+        return result;
     }
 
     public static String generateToken() {
@@ -209,5 +274,15 @@ public class vault {
         String token = randValue + uid + shuffleString("!@#$%^&*()?><\":}{");
         token = sha256(token);
         return token;
+    }
+
+    public static void main(String[] arg) {
+        try {
+            FileOutputStream fos = new FileOutputStream("c:\\settlement.dat");
+            fos.write((fromHexString("0092600003000005002020010000c000129200000000040003313331333337303730303030303030303030343337353200063030303030310090303032303030303030303030383030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030")));
+            fos.close();
+        } catch (Exception ex){
+
+        }
     }
 }

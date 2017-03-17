@@ -3,6 +3,7 @@ package mn.ezpay.service;
 import mn.ezpay.dao.tokenDao;
 import mn.ezpay.entity.cards;
 import mn.ezpay.entity.multitoken;
+import mn.ezpay.entity.settlement;
 import mn.ezpay.entity.token;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,10 @@ public class tokenService {
 
     public token check(token token) {
         return dao.check(token);
+    }
+
+    public settlement settlement(settlement settlement) {
+        return dao.settlement(settlement);
     }
 
     public token request(token entity) {

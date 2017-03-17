@@ -42,5 +42,4 @@ public class merchantController {
         pageable.put("data", list);
         return pageable;
     }
-
 }

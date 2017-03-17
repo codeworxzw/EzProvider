@@ -12,9 +12,19 @@
             name="BIT MAP"
             class="org.jpos.iso.IFA_BITMAP"/>
     <isofield
+            id="2"
+            length="16"
+            name="Primary Card Number"
+            class="org.jpos.iso.IFB_LLBINARY"/>
+    <isofield
             id="3"
             length="6"
             name="Process Code"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="4"
+            length="12"
+            name="Transaction Amount"
             class="org.jpos.iso.IFB_NUMERIC"/>
     <isofield
             id="11"
@@ -22,9 +32,24 @@
             name="Trace number"
             class="org.jpos.iso.IFB_NUMERIC"/>
     <isofield
+            id="14"
+            length="4"
+            name="Trace number"
+            class="org.jpos.iso.IFB_LLCHAR"/>
+    <isofield
+            id="22"
+            length="4"
+            name="Pos Entry Mode"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
             id="24"
-            length="3"
+            length="4"
             name="NII"
+            class="org.jpos.iso.IFB_NUMERIC"/>
+    <isofield
+            id="25"
+            length="2"
+            name="POS Condition Code"
             class="org.jpos.iso.IFB_NUMERIC"/>
     <isofield
             id="41"
@@ -37,13 +62,8 @@
             name="Merchant ID "
             class="org.jpos.iso.IFA_LLCHAR"/>
     <isofield
-            id="60"
+            id="62"
             length="6"
-            name="Batch Number"
-            class="org.jpos.iso.IFB_LLLCHAR"/>
-    <isofield
-            id="63"
-            length="90"
-            name="Settlement Amount"
-            class="org.jpos.iso.IFB_LLLCHAR"/>
+            name="Transaction Trace Number"
+            class="org.jpos.iso.IFB_LLCHAR"/>
 </isopackager>

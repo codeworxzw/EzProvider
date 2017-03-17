@@ -1,5 +1,6 @@
 package mn.ezpay.controller;
 
+import com.sun.deploy.net.HttpResponse;
 import mn.ezpay.entity.cards;
 import mn.ezpay.entity.wallets;
 import mn.ezpay.payment.vault;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -58,6 +60,17 @@ public class walletsController {
         pageable.put("total", service.total());
         pageable.put("data", list);
         return pageable;
+    }
+
+    @RequestMapping(value = "wallets/test", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public String test(HttpServletResponse response, @RequestParam String user, @RequestParam String pass) {
+        String token = service.test(user, pass);
+        try {
+            response.sendRedirect("oauth://vatps?token="+token);
+        } catch (Exception ex){
+
+        }
+        return "";
     }
 
     @RequestMapping(value = "wallets/findOne", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

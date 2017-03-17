@@ -6,6 +6,8 @@ import org.hibernate.Query;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -23,6 +25,11 @@ public class walletDao extends dao<wallets> {
         return findAll(wallets.class, page, size, order, dir);
     }
 
+
+    public String getCurrentTimeStamp() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+    }
+
     public wallets create(String walletId, String deviceName) {
         getSession();
         session.getTransaction().begin();
@@ -35,17 +42,21 @@ public class walletDao extends dao<wallets> {
             session.getTransaction().commit();
 
             wallets w = findOne(walletId);
-            if (w == null) w = new wallets();
+            if (w == null) {
+                w = new wallets();
+                w.set_date(getCurrentTimeStamp());
+            }
 
             w.setWalletId(walletId);
             w.setStatus("inactive");
+
             w.setDeviceName(deviceName);
             int pin = 10000 + (int) (Math.random() * 10000);
             w.setPin(Integer.toString(pin));
             res = update(w);
 
             //sms gateway
-            msgGW.send(w.getWalletId(), msgGW.buildMsg(1, new String[]{w.getPin()}));
+           // msgGW.send(w.getWalletId(), msgGW.buildMsg(1, new String[]{w.getPin()}));
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -79,6 +90,10 @@ public class walletDao extends dao<wallets> {
         }
 
         return res;
+    }
+
+    public String test(String user, String pass) {
+       return new msgGW().getJson("https://mobile.ebarimt.mn/rest/login/check", user, pass);
     }
 
     public wallets check(String walletId, String pin) {
