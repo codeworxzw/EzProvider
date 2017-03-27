@@ -8,6 +8,7 @@ import mn.ezpay.security.DesEncrypter;
 import mn.ezpay.security.base64;
 import org.bouncycastle.util.encoders.Base64;
 import org.hibernate.Query;
+import org.hibernate.Session;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
@@ -463,6 +464,7 @@ public class tokenDao extends dao<token> {
     }
 
     public token check(token entity) {
+        Session session = null;
         String token = tokenFull(entity); //mini baiwal tokenii buheldeh
         if (token.length() > BARCODE13) {
             token old = findToken(token);
@@ -737,8 +739,6 @@ public class tokenDao extends dao<token> {
                         res.put("code", "EZ910");
                         old.setResponse(res.toString());
                         update(old);
-
-                        System.out.println("BAINUUUUUUU");
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", traceNo); //new traceNo
