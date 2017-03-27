@@ -25,7 +25,6 @@ public class walletDao extends dao<wallets> {
         return findAll(wallets.class, page, size, order, dir);
     }
 
-
     public String getCurrentTimeStamp() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
     }

@@ -14,6 +14,8 @@ public class settlement {
     @Column
     private double amount;
     @Column
+    private int count;
+    @Column
     private String _date;
     @Column
     private String _day;
@@ -74,5 +76,13 @@ public class settlement {
 
     public void set_day(String _day) {
         this._day = _day;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 }

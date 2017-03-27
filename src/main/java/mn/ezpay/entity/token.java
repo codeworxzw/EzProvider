@@ -37,12 +37,22 @@ import java.util.List;
         ),
         @NamedNativeQuery(
                 name = "dayList",
-                query = "SELECT * FROM token WHERE status=3 and DATE_FORMAT(_date, '%Y%m%d')=:_day and _date>=(select _date from settlements where respondCode='3030' order by _date desc limit 0,1) and merchantData=:merchantData",
+                query = "SELECT * FROM token WHERE status=3 and _date>=(select _date from settlement where respondCode='3030' order by _date desc limit 0,1) and merchantData=:merchantData",
+                resultClass = token.class
+        ),
+        @NamedNativeQuery(
+                name = "loyaltyIds",
+                query = "SELECT * FROM cards WHERE status='active' and walletId = :walletId",
+                resultClass = cards.class
+        ),
+        @NamedNativeQuery(
+                name = "dayLimit",
+                query = "SELECT * FROM token WHERE status=3 and _date>=CURDATE() and walletId = :walletId order by _date desc",
                 resultClass = token.class
         ),
         @NamedNativeQuery(
                 name = "settleCommit",
-                query = "INSERT INTO settlements (merchantId, count, amount, _day, respondCode, merchantData) VALUES (:merchantId,:count,:amount,:day,:respondCode,:merchantData)",
+                query = "INSERT INTO settlement (merchantId, count, amount, _date, respondCode, merchantData) VALUES (:merchantId,:count,:amount,:_date,:respondCode,:merchantData)",
                 resultClass = settlement.class
         )
 })
@@ -77,7 +87,8 @@ public class token implements java.io.Serializable {
     private String type;
     @Column
     private String merchantId;
-
+    @Column
+    private String key4;
     @JsonIgnore
     @JsonIgnoreProperties(ignoreUnknown = true)
     @OneToMany(mappedBy = "token", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -219,5 +230,13 @@ public class token implements java.io.Serializable {
 
     public void setTraceOld(List<purchase> traceOld) {
         this.traceOld = traceOld;
+    }
+
+    public String getKey4() {
+        return key4;
+    }
+
+    public void setKey4(String key4) {
+        this.key4 = key4;
     }
 }

@@ -26,20 +26,25 @@ public class dao<T> {
     public Session getSession() {
 //        if (session.isCl)
 //        return (session = sessionFactory.getCurrentSession());
-//        //return (session = sessionFactory.openSession());
+//        return (session = sessionFactory.openSession());
+
+
         if (session != null && session.isOpen()) {
-            session.clear();
-            return (session = sessionFactory.getCurrentSession());
+            session = sessionFactory.getCurrentSession();
+            if (session.getSessionFactory().isClosed())
+                session = sessionFactory.openSession();
+
+            return session;
         }
         return (session = sessionFactory.getCurrentSession());
     }
 
     public void close() {
-       if (session != null && session.isOpen())
-            session.close();
+     //  if (session != null && session.isOpen())
+           // session.close();
     }
 
-    public void save(final T entity) {
+    public T save(final T entity) {
         getSession();
         session.getTransaction().begin();
         try {
@@ -50,6 +55,8 @@ public class dao<T> {
         } finally {
             close();
         }
+
+        return entity;
     }
 
     public T update(final T entity) {

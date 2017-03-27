@@ -17,6 +17,7 @@ public class cardDao extends dao<cards> {
     }
 
     public cards update(cards entity) {
+        System.out.println();
         if (entity.getEnc().indexOf("card_id") != -1) {
             entity.setEnc(vault.encryptedData(entity.getEnc(), getClass().getClassLoader().getResource("cfg/public.der").getFile()));
         }

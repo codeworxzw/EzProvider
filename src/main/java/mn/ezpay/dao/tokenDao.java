@@ -4,6 +4,7 @@ import mn.ezpay.entity.*;
 import mn.ezpay.payment.make;
 import mn.ezpay.payment.type;
 import mn.ezpay.payment.vault;
+import mn.ezpay.security.DesEncrypter;
 import mn.ezpay.security.base64;
 import org.bouncycastle.util.encoders.Base64;
 import org.hibernate.Query;
@@ -12,9 +13,15 @@ import org.hibernate.criterion.Restrictions;
 import org.json.JSONObject;
 import org.springframework.stereotype.Repository;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.DESKeySpec;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,11 +34,16 @@ public class tokenDao extends dao<token> {
     private static int CANCELLED = 4;
     private static int USER_ACCEPT = 2;
     private static int SETTLEMENT = 7;
+    private static int LIMIT_EXCEED = 8;
+    private static int DAY_EXCEED = 6;
 
     private static int BARCODE13 = 9;
     private static int CARD_LENGTH = 16;
     private static int TIMEOUT = 60;
     private static int RESPONDING_TIME = 1000 * 60;
+    private static double PIN_AMOUNT = 20000;
+    private static double MAX_AMOUNT = 50000;
+    private static double DAY_LIMIT = 300000;
 
     public List<token> findAll(int page, int size, String order, String dir) {
         return findAll(token.class, page, size, order, dir);
@@ -44,7 +56,8 @@ public class tokenDao extends dao<token> {
         try {
             crit = session.createCriteria(token.class);
             crit.add(Restrictions.eq("token", token));
-            //crit.add(Restrictions.lt("timestampdiff(SECOND,_date,current_timestamp)", 60*60*10000));
+//            crit.add(Restrictions.ne("status", 3));
+            //crit.add(Restrictions.lt("timestampdiff(SECOND,_date,current_timestamp)", 30*1000));
             crit.addOrder(Order.desc("_date"));
             List<token> list = crit.list();
             session.getTransaction().commit();
@@ -86,6 +99,7 @@ public class tokenDao extends dao<token> {
         wallets res = null;
         try {
             crit = session.createCriteria(wallets.class);
+            System.out.println(walletId);
             crit.add(Restrictions.eq("walletId", walletId));
             List<wallets> list = crit.list();
             res = (list.size()>0?list.get(0):null);
@@ -222,6 +236,25 @@ public class tokenDao extends dao<token> {
         return traceNo;
     }
 
+    public String getCurrentTimeStamp() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+    }
+
+    public List<JSONObject> loyaltyIds(String walletId) throws Exception {
+        Query queryLoyalty = session.getNamedQuery("loyaltyIds");
+        queryLoyalty.setParameter("walletId", walletId);
+        List<cards> list = queryLoyalty.list();
+        List<JSONObject> loyalty = new LinkedList<JSONObject>();
+        for (int i = 0; i < list.size(); i++) {
+            cards c = list.get(i);
+            JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(c.getEnc()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+            if (hashed.getBoolean("loyalty")) {
+                loyalty.add(hashed);
+            }
+        }
+        return loyalty;
+    }
+
     public token request(token entity) {
         getSession();
         session.getTransaction().begin();
@@ -235,11 +268,21 @@ public class tokenDao extends dao<token> {
                 Query query5 = session.getNamedQuery("token5");
                 query5.setParameter("token", token);
                 List<multitoken> list = query5.list();
-                if (list.size() > 0) {
+                if (list.size() == 1) {
+                    String hashed = list.get(0).getHashed();
                     entity.setToken(list.get(0).getToken());
-                    entity.setHashed(list.get(0).getHashed());
+                    entity.setHashed(hashed);
                     entity.setWalletId(list.get(0).getWalletId());
-                    entity.setResponse("{'code':'EZ901','msg':'Token амжилттай үүслээ !'}");
+                    entity.set_date(getCurrentTimeStamp());
+                    List<JSONObject> loyalty = loyaltyIds(list.get(0).getWalletId());
+                    JSONObject res = new JSONObject();
+                    res.put("code", "EZ901");
+                    res.put("msg", "Token амжилттай үүслээ !");
+                    for (int i = 0; i < loyalty.size(); i++) {
+                        String ico = loyalty.get(i).getString("card_ico");
+                        res.put(ico.split("\\.")[0], loyalty.get(i).getString("card_id"));
+                    }
+                    entity.setResponse(res.toString());
                     session.save(entity);
                     session.getTransaction().commit();
                 }
@@ -248,11 +291,13 @@ public class tokenDao extends dao<token> {
                 System.out.println(miniToken(token));
                 entity.setResponse("{'code':'EZ901','msg':'Token амжилттай үүслээ !'}");
                 entity.setToken(token);
+                entity.set_date(getCurrentTimeStamp());
                 session.save(entity);
                 session.getTransaction().commit();
             }
         } catch (Exception ex) {
             session.getTransaction().rollback();
+            ex.printStackTrace();
         } finally {
             close();
         }
@@ -260,17 +305,18 @@ public class tokenDao extends dao<token> {
         return findToken(token);
     }
 
-    public void batch_upload(settlement entity) {
+    public settlement batch_upload(settlement entity) {
         getSession();
         try {
             session.getTransaction().begin();
             Query query = session.getNamedQuery("dayList");
-            query.setParameter("_day", entity.get_day());
+           // query.setParameter("_day", entity.get_day());
             query.setParameter("merchantData", entity.getMerchantData());
             List<token> list = query.list();
             session.getTransaction().commit();
             make make = new make();
             int r = 0;
+            double amount = 0;
             for (int i = 0; i < list.size(); i++) {
                 token token = list.get(i);
                 JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(token.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
@@ -297,12 +343,17 @@ public class tokenDao extends dao<token> {
                     bankEntity.put("transDate", token.getTraceOld().get(0).getTransDate());
                     bankEntity.put("oldTraceNo", token.getOldTraceNo());
                 } else {
-                    bankEntity.put("systemRef", token.getTrace().get(0).getSystemRef());
-                    bankEntity.put("approveCode", token.getTrace().get(0).getApproveCode());
-                    bankEntity.put("amount", token.getTrace().get(0).getAmount());
-                    bankEntity.put("transTime", token.getTrace().get(0).getTransTime());
-                    bankEntity.put("transDate", token.getTrace().get(0).getTransDate());
-                    bankEntity.put("oldTraceNo", token.getTraceNo());
+                    if (token.getTrace() != null) {
+                        bankEntity.put("systemRef", token.getTrace().get(0).getSystemRef());
+                        bankEntity.put("approveCode", token.getTrace().get(0).getApproveCode());
+                        bankEntity.put("amount", token.getTrace().get(0).getAmount());
+                        bankEntity.put("transTime", token.getTrace().get(0).getTransTime());
+                        bankEntity.put("transDate", token.getTrace().get(0).getTransDate());
+                        bankEntity.put("oldTraceNo", token.getTraceNo());
+                        amount += token.getAmount();
+                    } else {
+                        continue;
+                    }
                 }
                 JSONObject res = make.makePayment(type.golomt, "batch", bankEntity);
                 if (res.getString("respondCode").equals("3030")) {
@@ -316,14 +367,18 @@ public class tokenDao extends dao<token> {
                 getSession();
                 session.getTransaction().begin();
                 Query query1 = session.getNamedQuery("settleCommit");
-                query1.setParameter("day", entity.get_day());
+                query1.setParameter("_date", getCurrentTimeStamp());
                 query1.setParameter("merchantData", entity.getMerchantData());
                 query1.setParameter("merchantId", entity.getMerchantId());
-                query1.setParameter("amount", entity.getAmount());
+                query1.setParameter("amount", amount);
                 query1.setParameter("count", r);
                 query1.setParameter("respondCode", "3030");
                 query1.executeUpdate();
                 session.getTransaction().commit();
+
+                entity.setAmount(amount);
+                entity.setCount(r);
+                entity.setRespondCode("3030");
             }
         } catch (Exception e) {
             //session.getTransaction().rollback();
@@ -331,6 +386,8 @@ public class tokenDao extends dao<token> {
         } finally {
             close();
         }
+
+        return entity;
     }
 
     public settlement settlement(settlement entity) {
@@ -339,7 +396,7 @@ public class tokenDao extends dao<token> {
             make make = new make();
             session.getTransaction().begin();
             Query query = session.getNamedQuery("dayList");
-            query.setParameter("_day", entity.get_day());
+//            query.setParameter("_day", entity.get_day());
             query.setParameter("merchantData", entity.getMerchantData());
             List<token> list = query.list();
             session.getTransaction().commit();
@@ -378,7 +435,7 @@ public class tokenDao extends dao<token> {
                     entity.setRespondCode(res.getString("respondCode"));
 
                     Query query1 = session.getNamedQuery("settleCommit");
-                    query1.setParameter("day", entity.get_day());
+                    query1.setParameter("_date", getCurrentTimeStamp());
                     query1.setParameter("merchantData", entity.getMerchantData());
                     query1.setParameter("merchantId", entity.getMerchantId());
                     query1.setParameter("amount", amount);
@@ -389,7 +446,7 @@ public class tokenDao extends dao<token> {
                     return entity;
                 } else {
                     entity.setRespondCode(res.getString("respondCode"));
-                    batch_upload(entity);
+                    entity = batch_upload(entity);
                     return entity;
                 }
             } else {
@@ -414,15 +471,43 @@ public class tokenDao extends dao<token> {
                     getSession();
                     session.getTransaction().begin();
                     try {
-                        old.setStatus(CONFIRMED);
-                        old.setResponse("{'code':'EZ901','msg':'Token-г борлуулагч баталгаажууллаа !'}");
-                        old.setMerchantId(entity.getMerchantId());
-                        old.setMerchantData(entity.getMerchantData());
-                        old.setAmount(entity.getAmount());
-                        if (entity.getAmount() < 0)
-                            old.setOldTraceNo(entity.getOldTraceNo()); //butsaaltiin ueiin traceNo
-                        session.merge(old);
-                        session.getTransaction().commit();
+                        if (entity.getAmount() > MAX_AMOUNT) {
+                            old.setStatus(LIMIT_EXCEED);
+                            old.setResponse("{'code':'EZ905','msg':'Нэг удаагийн лимит хэтэрсэн'}");
+                            old.setMerchantId(entity.getMerchantId());
+                            old.setMerchantData(entity.getMerchantData());
+                            old.setAmount(entity.getAmount());
+                            session.merge(old);
+                            session.getTransaction().commit();
+                        } else {
+                            Query query = session.getNamedQuery("dayLimit");
+                            query.setParameter("walletId", old.getWalletId());
+                            List<token> list = query.list();
+                            double dayLimit = 0;
+                            for (int i = 0; i < list.size(); i++) {
+                                dayLimit += list.get(i).getAmount();
+                            }
+
+                            if (dayLimit + entity.getAmount() > DAY_LIMIT) {
+                                old.setStatus(DAY_EXCEED);
+                                old.setResponse("{'code':'EZ906','msg':'Өдрийн лимит хэтэрсэн !'}");
+                                old.setMerchantId(entity.getMerchantId());
+                                old.setMerchantData(entity.getMerchantData());
+                                old.setAmount(entity.getAmount());
+                                session.merge(old);
+                                session.getTransaction().commit();
+                            } else {
+                                old.setStatus(CONFIRMED);
+                                old.setResponse("{'code':'EZ901','msg':'Token-г борлуулагч баталгаажууллаа !'}");
+                                old.setMerchantId(entity.getMerchantId());
+                                old.setMerchantData(entity.getMerchantData());
+                                old.setAmount(entity.getAmount());
+                                if (entity.getAmount() < 0)
+                                    old.setOldTraceNo(entity.getOldTraceNo()); //butsaaltiin ueiin traceNo
+                                session.merge(old);
+                                session.getTransaction().commit();
+                            }
+                        }
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         session.getTransaction().rollback();
@@ -432,21 +517,60 @@ public class tokenDao extends dao<token> {
                     return old;
                 } else if (old.getStatus() == CONFIRMED && entity.getStatus() == USER_ACCEPT) {//transaction make
                     getSession();
+                    boolean pass = false;
                     session.getTransaction().begin();
                     try {
-                        old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
-                        old.setStatus(entity.getStatus());
-                        session.merge(old);
-                        session.getTransaction().commit();
+                        JSONObject card = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+                        /*SecretKey key = KeyGenerator.getInstance("DES").generateKey();
+                        DESKeySpec dks = new DESKeySpec("De$crypt0r@73{2]u".getBytes());
+                        SecretKeyFactory skf = SecretKeyFactory.getInstance("DES");
+                        SecretKey desKey = skf.generateSecret(dks);
+                        DesEncrypter encrypter = new DesEncrypter(desKey);
+                        */
+
+                        Query query = session.getNamedQuery("dayLimit");
+                        query.setParameter("walletId", old.getWalletId());
+                        List<token> list = query.list();
+                        double lastAmount = 0;
+                        for (int i = 0; i < list.size(); i++) {
+                            if (list.get(i).getStatus() == 3 && i == 0) {
+                                lastAmount = list.get(i).getAmount();
+                                break;
+                            }
+                        }
+
+                        System.out.println("keys = " + entity.getKey4());
+                        System.out.println(lastAmount+ " "+old.getAmount());
+                        if (old.getAmount() < PIN_AMOUNT && lastAmount != old.getAmount()) {
+                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
+                            old.setStatus(entity.getStatus());
+                            session.update(old);
+                            session.getTransaction().commit();
+                            pass = true;
+                        } else
+                        if ((old.getAmount() >= PIN_AMOUNT || lastAmount == old.getAmount()) && card.getString("ccv").equals(entity.getKey4())) {
+                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
+                            old.setStatus(entity.getStatus());
+                            session.update(old);
+                            pass = true;
+                            session.getTransaction().commit();
+                        } else {
+                            old.setResponse("{'code':'EZ904','msg':'ПИН буруу !'}");
+                            session.update(old);
+                            session.getTransaction().commit();
+                            pass = false;
+                        }
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         session.getTransaction().rollback();
                     } finally {
                         close();
-                        if (old.getAmount() < 0)
-                            old = pvoid(entity, old);
-                        else
-                            old = payment(entity, old);
+                        if (pass) {
+                            if (old.getAmount() < 0)
+                                old = pvoid(entity, old);
+                            else
+                                old = payment(entity, old);
+                        }
                     }
 
                     return old;
@@ -574,7 +698,7 @@ public class tokenDao extends dao<token> {
                 System.out.println(hashed.toString());
                 JSONObject card = null;
                 if ("short".equals(old.getType()))
-                    card = findCard(hashed, findWallet(entity.getWalletId()), old);
+                    card = findCard(hashed, findWallet(old.getWalletId()), old);
                 else
                     card = hashed;
                 if (card != null) {
@@ -602,6 +726,7 @@ public class tokenDao extends dao<token> {
                         p.setTransTime(res.getString("transTime"));
                         p.setTransDate(res.getString("transDate"));
                         res.put("respondCode", "3030");
+                        res.put("expire", card.getString("expire"));
                         p.setRespondCode(res.getString("respondCode"));
                         p.setCode("EZ910");
                         res.put("msg", "Success");
@@ -612,6 +737,8 @@ public class tokenDao extends dao<token> {
                         res.put("code", "EZ910");
                         old.setResponse(res.toString());
                         update(old);
+
+                        System.out.println("BAINUUUUUUU");
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", traceNo); //new traceNo
