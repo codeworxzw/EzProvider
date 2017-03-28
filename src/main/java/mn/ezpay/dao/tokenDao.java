@@ -52,7 +52,7 @@ public class tokenDao extends dao<token> {
 
     public token findToken(String token) {
         token t = null;
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(token.class);
@@ -67,7 +67,7 @@ public class tokenDao extends dao<token> {
             t = new token();
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return t;
@@ -77,7 +77,7 @@ public class tokenDao extends dao<token> {
         List<cards> list = null;
         token entity = findToken(token);
         String walletId = entity.getWalletId();
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(cards.class);
@@ -95,7 +95,7 @@ public class tokenDao extends dao<token> {
     }
 
     public wallets findWallet(String walletId) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         wallets res = null;
         try {
@@ -108,7 +108,7 @@ public class tokenDao extends dao<token> {
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return res;
@@ -136,7 +136,7 @@ public class tokenDao extends dao<token> {
     }
 
     public multitoken update_multi(multitoken entity) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             multitoken item = (multitoken) session.merge(entity);
@@ -145,14 +145,14 @@ public class tokenDao extends dao<token> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return entity;
     }
 
     public List<multitoken> generate5Token(String walletId, String hashed) {
-        getSession();
+        Session session = getSession();
         List tokens;
         session.getTransaction().begin();
 
@@ -178,8 +178,8 @@ public class tokenDao extends dao<token> {
     }
 
     public String batchNo(String terminalId, String merchantId)  {
+        Session session = getSession();
         String batchNo = "0";
-        getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(trace.class);
@@ -202,14 +202,14 @@ public class tokenDao extends dao<token> {
             session.getTransaction().rollback();
             ex.printStackTrace();
         } finally {
-            close();
+            session.close();
         }
         return batchNo;
     }
 
     public String traceNo(String terminalId, String merchantId)  {
+        Session session = getSession();
         String traceNo = "0";
-        getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(trace.class);
@@ -232,7 +232,7 @@ public class tokenDao extends dao<token> {
             session.getTransaction().rollback();
             ex.printStackTrace();
         } finally {
-            close();
+            session.close();
         }
         return traceNo;
     }
@@ -242,6 +242,7 @@ public class tokenDao extends dao<token> {
     }
 
     public List<JSONObject> loyaltyIds(String walletId) throws Exception {
+        Session session = getSession();
         Query queryLoyalty = session.getNamedQuery("loyaltyIds");
         queryLoyalty.setParameter("walletId", walletId);
         List<cards> list = queryLoyalty.list();
@@ -253,11 +254,12 @@ public class tokenDao extends dao<token> {
                 loyalty.add(hashed);
             }
         }
+        session.close();
         return loyalty;
     }
 
     public token request(token entity) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         String token = "";
         try {
@@ -300,14 +302,14 @@ public class tokenDao extends dao<token> {
             session.getTransaction().rollback();
             ex.printStackTrace();
         } finally {
-            close();
+            session.close();
         }
 
         return findToken(token);
     }
 
     public settlement batch_upload(settlement entity) {
-        getSession();
+        Session session = getSession();
         try {
             session.getTransaction().begin();
             Query query = session.getNamedQuery("dayList");
@@ -385,14 +387,14 @@ public class tokenDao extends dao<token> {
             //session.getTransaction().rollback();
             e.printStackTrace();
         } finally {
-            close();
+            session.close();
         }
 
         return entity;
     }
 
     public settlement settlement(settlement entity) {
-        getSession();
+        Session session = getSession();
         try {
             make make = new make();
             session.getTransaction().begin();
@@ -457,20 +459,19 @@ public class tokenDao extends dao<token> {
             ex.printStackTrace();
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return entity;
     }
 
     public token check(token entity) {
-        Session session = null;
         String token = tokenFull(entity); //mini baiwal tokenii buheldeh
         if (token.length() > BARCODE13) {
             token old = findToken(token);
             if (old != null) {
                 if (old.getStatus() == NEW && entity.getStatus() == CONFIRMED && (entity.getMerchantData() != null && entity.getMerchantData().length() > 4)) { //merchant confirm
-                    getSession();
+                    Session session = getSession();
                     session.getTransaction().begin();
                     try {
                         if (entity.getAmount() > MAX_AMOUNT) {
@@ -514,11 +515,11 @@ public class tokenDao extends dao<token> {
                         ex.printStackTrace();
                         session.getTransaction().rollback();
                     } finally {
-                        close();
+                        session.close();
                     }
                     return old;
                 } else if (old.getStatus() == CONFIRMED && entity.getStatus() == USER_ACCEPT) {//transaction make
-                    getSession();
+                    Session session = getSession();
                     boolean pass = false;
                     session.getTransaction().begin();
                     try {
@@ -566,7 +567,7 @@ public class tokenDao extends dao<token> {
                         ex.printStackTrace();
                         session.getTransaction().rollback();
                     } finally {
-                        close();
+                        session.close();
                         if (pass) {
                             if (old.getAmount() < 0)
                                 old = pvoid(entity, old);
@@ -577,7 +578,7 @@ public class tokenDao extends dao<token> {
 
                     return old;
                 } else if (old.getStatus() == CONFIRMED && (entity.getWalletId() != null && entity.getWalletId().length() > 4)) { //wallet owner confirm
-                    getSession();
+                    Session session = getSession();
                     session.getTransaction().begin();
                     try {
                         if (old.getAmount() < 0) {
@@ -588,7 +589,7 @@ public class tokenDao extends dao<token> {
                     } catch (Exception ex) {
                         session.getTransaction().rollback();
                     } finally {
-                        close();
+                        session.close();
                     }
                     return old;
                 } else if (old.getStatus() == SUCCESS) {
@@ -786,7 +787,7 @@ public class tokenDao extends dao<token> {
     public String tokenFull(token entity) {
         String token = entity.getToken();
         if (token.length() == BARCODE13) {
-            getSession();
+            Session session = getSession();
             session.getTransaction().begin();
             try {
                 Query query = session.getNamedQuery("miniToken");
@@ -815,7 +816,7 @@ public class tokenDao extends dao<token> {
             } catch (Exception ex) {
                 session.getTransaction().rollback();
             } finally {
-                close();
+                session.close();
             }
         }
 

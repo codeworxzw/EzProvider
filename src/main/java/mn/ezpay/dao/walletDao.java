@@ -3,6 +3,7 @@ package mn.ezpay.dao;
 import mn.ezpay.entity.wallets;
 import mn.ezpay.msg.msgGW;
 import org.hibernate.Query;
+import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
 
@@ -30,7 +31,7 @@ public class walletDao extends dao<wallets> {
     }
 
     public wallets create(String walletId, String deviceName) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         wallets res = null;
         try {
@@ -55,18 +56,18 @@ public class walletDao extends dao<wallets> {
             res = update(w);
 
             //sms gateway
-           // msgGW.send(w.getWalletId(), msgGW.buildMsg(1, new String[]{w.getPin()}));
+            msgGW.send(w.getWalletId(), msgGW.buildMsg(1, new String[]{w.getPin()}));
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return res;
     }
 
     public wallets activision(String walletId, String pin) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         wallets res = null;
         try {
@@ -85,7 +86,7 @@ public class walletDao extends dao<wallets> {
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return res;
@@ -96,7 +97,7 @@ public class walletDao extends dao<wallets> {
     }
 
     public wallets check(String walletId, String pin) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         wallets res = null;
         try {
@@ -112,7 +113,7 @@ public class walletDao extends dao<wallets> {
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
         return res;
     }

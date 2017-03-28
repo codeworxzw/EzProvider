@@ -21,22 +21,21 @@ public class dao<T> {
 
     public Criteria crit;
     public long total = 0;
-    public Session session;
 
     public Session getSession() {
 //        if (session.isCl)
 //        return (session = sessionFactory.getCurrentSession());
-//        return (session = sessionFactory.openSession());
+        return (sessionFactory.openSession());
 
 
-        if (session != null && session.isOpen()) {
+        /*if (session != null && session.isOpen()) {
             session = sessionFactory.getCurrentSession();
             if (session.getSessionFactory().isClosed())
                 session = sessionFactory.openSession();
 
             return session;
         }
-        return (session = sessionFactory.getCurrentSession());
+        return (session = sessionFactory.getCurrentSession());*/
     }
 
     public void close() {
@@ -45,7 +44,7 @@ public class dao<T> {
     }
 
     public T save(final T entity) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             session.save(entity);
@@ -53,14 +52,14 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return entity;
     }
 
     public T update(final T entity) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             session.saveOrUpdate(entity);
@@ -69,14 +68,14 @@ public class dao<T> {
             ex.printStackTrace();
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return entity;
     }
 
     protected T findOne(final Class<T> type, final int id) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         T item = null;
         try {
@@ -85,13 +84,13 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
         return item;
     }
 
     public void delete(final T entity) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             session.delete(entity);
@@ -99,13 +98,13 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
     }
 
     public long total(final Class<T> type) {
         long total = 0;
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         try {
             crit = session.createCriteria(type);
@@ -115,14 +114,14 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+           session.close();
         }
 
         return total;
     }
 
     public <T> List<T> findAll(final Class<T> type) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         List<T> list = null;
         try {
@@ -133,14 +132,14 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return list;
     }
 
     public T findOne(final Class<T> type, String field, String value) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         T item = null;
         try {
@@ -155,13 +154,13 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
         return item;
     }
 
     public <T> List<T> findAll(final Class<T> type, int page, int size, String order, String dir) {
-        getSession();
+        Session session = getSession();
         session.getTransaction().begin();
         List<T> list = new LinkedList<>();
         try {
@@ -182,7 +181,7 @@ public class dao<T> {
         } catch (RuntimeException ex) {
             session.getTransaction().rollback();
         } finally {
-            close();
+            session.close();
         }
 
         return list;

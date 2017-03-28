@@ -32,7 +32,7 @@ public class msgGW {
     public static String send(String phone, String msg) {
         String ret = "";
         try {
-            URL oracle = new URL("http://27.123.214.168/smsmt/mt?servicename=132222&username=132222&from=132222&to="+phone+"&msg="+msg);
+            URL oracle = new URL("http://27.123.214.168/smsmt/mt?servicename=easypay&username=easypay&from=151595&to="+phone+"&msg="+msg);
             URLConnection yc = oracle.openConnection();
             BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
             String inputLine = "";
