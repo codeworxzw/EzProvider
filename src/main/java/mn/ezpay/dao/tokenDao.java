@@ -44,7 +44,7 @@ public class tokenDao extends dao<token> {
     private static int RESPONDING_TIME = 1000 * 60;
     private static double PIN_AMOUNT = 20000;
     private static double MAX_AMOUNT = 50000;
-    private static double DAY_LIMIT = 300000;
+    private static double DAY_LIMIT = 3000000;
 
     public List<token> findAll(int page, int size, String order, String dir) {
         return findAll(token.class, page, size, order, dir);
@@ -308,7 +308,7 @@ public class tokenDao extends dao<token> {
         return findToken(token);
     }
 
-    public settlement batch_upload(settlement entity) {
+    public settlement batch_upload(settlement entity, JSONObject bankEntityOld) {
         Session session = getSession();
         try {
             session.getTransaction().begin();
@@ -367,21 +367,26 @@ public class tokenDao extends dao<token> {
             }
 
             if (r == list.size()) {
-                getSession();
-                session.getTransaction().begin();
-                Query query1 = session.getNamedQuery("settleCommit");
-                query1.setParameter("_date", getCurrentTimeStamp());
-                query1.setParameter("merchantData", entity.getMerchantData());
-                query1.setParameter("merchantId", entity.getMerchantId());
-                query1.setParameter("amount", amount);
-                query1.setParameter("count", r);
-                query1.setParameter("respondCode", "3030");
-                query1.executeUpdate();
-                session.getTransaction().commit();
+                bankEntityOld.put("processCode", "960000");
+                JSONObject res = make.makePayment(type.golomt, "settlement", bankEntityOld);//settlement finish
 
-                entity.setAmount(amount);
-                entity.setCount(r);
-                entity.setRespondCode("3030");
+                if (res.getString("respondCode").equals("3030")) {
+                    getSession();
+                    session.getTransaction().begin();
+                    Query query1 = session.getNamedQuery("settleCommit");
+                    query1.setParameter("_date", getCurrentTimeStamp());
+                    query1.setParameter("merchantData", entity.getMerchantData());
+                    query1.setParameter("merchantId", entity.getMerchantId());
+                    query1.setParameter("amount", amount);
+                    query1.setParameter("count", r);
+                    query1.setParameter("respondCode", "3030");
+                    query1.executeUpdate();
+                    session.getTransaction().commit();
+
+                    entity.setAmount(amount);
+                    entity.setCount(r);
+                    entity.setRespondCode("3030");
+                }
             }
         } catch (Exception e) {
             //session.getTransaction().rollback();
@@ -449,7 +454,7 @@ public class tokenDao extends dao<token> {
                     return entity;
                 } else {
                     entity.setRespondCode(res.getString("respondCode"));
-                    entity = batch_upload(entity);
+                    entity = batch_upload(entity, bankEntity);
                     return entity;
                 }
             } else {
@@ -757,20 +762,21 @@ public class tokenDao extends dao<token> {
                             p.setTransTime(res.getString("transTime"));
                             p.setTransDate(res.getString("transDate"));
                             p.setRespondCode(res.getString("respondCode"));
-                            p.setCode("EZ910");
-                            res.put("msg", "Success");
+                            p.setCode("EZ913");
+                            res.put("msg", "Reversal");
                             pur.add(p);
 
                             old.setTrace(pur);
                             old.setStatus(CANCELLED);
                             old.setTraceNo(traceNo);
-                            res.put("code", "EZ910");
+                            res.put("code", "EZ913");
                             old.setResponse(res.toString());
                             update(old);
                         } else {
                             System.out.println("FAIL");
                             old.setStatus(FAIL);
-                            old.setResponse("{'code':'EZ902','msg':'Амжилтгvй !'}");
+                            String msg = res.toString();
+                            old.setResponse("{'code':'EZ913','msg':'"+msg+"'}");
                             update(old);
                         }
                     }
