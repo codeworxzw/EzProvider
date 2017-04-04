@@ -31,6 +31,11 @@ import java.util.List;
                 resultClass = multitoken.class
         ),
         @NamedNativeQuery(
+                name = "qrToken",
+                query = "select * FROM token where merchantData=:merchantData and abs(timestampdiff(SECOND,_date,current_timestamp)) < :time_out and type='qr' and amount<>0 and status < 3",
+                resultClass = token.class
+        ),
+        @NamedNativeQuery(
                 name = "disableTokens",
                 query = "update multitoken set status='inactive' where walletId=:walletId",
                 resultClass = multitoken.class

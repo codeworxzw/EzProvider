@@ -13,6 +13,8 @@ public class merchant implements java.io.Serializable {
     private String merchantId;
     @Column
     private String name;
+    @Column
+    private String phone;
 
     @OneToMany(mappedBy = "merchants", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<terminal> terminalList;
@@ -47,5 +49,13 @@ public class merchant implements java.io.Serializable {
 
     public void setTerminalList(List<terminal> terminalList) {
         this.terminalList = terminalList;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

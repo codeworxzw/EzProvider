@@ -1,6 +1,7 @@
 package mn.ezpay.dao;
 
 import mn.ezpay.entity.*;
+import mn.ezpay.msg.msgGW;
 import mn.ezpay.payment.make;
 import mn.ezpay.payment.type;
 import mn.ezpay.payment.vault;
@@ -308,6 +309,145 @@ public class tokenDao extends dao<token> {
         return findToken(token);
     }
 
+    public token check(token entity) {
+        String token = tokenFull(entity); //mini baiwal tokenii buheldeh
+        if (token.length() > BARCODE13) {
+            token old = findToken(token);
+            if (old != null) {
+                if (old.getStatus() == NEW && entity.getStatus() == CONFIRMED && (entity.getMerchantData() != null && entity.getMerchantData().length() > 4)) { //merchant confirm
+                    Session session = getSession();
+                    session.getTransaction().begin();
+                    try {
+                        if (old.getType().equals("qr")) {
+                            old.setWalletId(entity.getWalletId());
+                            entity.setAmount(old.getAmount());
+                        }
+
+                        if (entity.getAmount() > MAX_AMOUNT) {
+                            old.setStatus(LIMIT_EXCEED);
+                            old.setResponse("{'code':'EZ905','msg':'Нэг удаагийн лимит хэтэрсэн'}");
+                            old.setMerchantId(entity.getMerchantId());
+                            old.setMerchantData(entity.getMerchantData());
+                            old.setAmount(entity.getAmount());
+                            session.merge(old);
+                            session.getTransaction().commit();
+                        } else {
+                            Query query = session.getNamedQuery("dayLimit");
+                            query.setParameter("walletId", old.getWalletId());
+                            List<token> list = query.list();
+                            double dayLimit = 0;
+                            for (int i = 0; i < list.size(); i++) {
+                                dayLimit += list.get(i).getAmount();
+                            }
+
+                            if (dayLimit + entity.getAmount() > DAY_LIMIT) {
+                                old.setStatus(DAY_EXCEED);
+                                old.setResponse("{'code':'EZ906','msg':'Өдрийн лимит хэтэрсэн !'}");
+                                old.setMerchantId(entity.getMerchantId());
+                                old.setMerchantData(entity.getMerchantData());
+                                old.setAmount(entity.getAmount());
+                                session.merge(old);
+                                session.getTransaction().commit();
+                            } else {
+                                old.setStatus(CONFIRMED);
+                                old.setResponse("{'code':'EZ901','msg':'Token-г борлуулагч баталгаажууллаа !'}");
+                                old.setMerchantId(entity.getMerchantId());
+                                old.setMerchantData(entity.getMerchantData());
+                                old.setAmount(entity.getAmount());
+                                if (entity.getAmount() < 0)
+                                    old.setOldTraceNo(entity.getOldTraceNo()); //butsaaltiin ueiin traceNo
+                                session.merge(old);
+                                session.getTransaction().commit();
+                            }
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        session.getTransaction().rollback();
+                    } finally {
+                        session.close();
+                    }
+                    return old;
+                } else if (old.getStatus() == CONFIRMED && entity.getStatus() == USER_ACCEPT) {//transaction make
+                    Session session = getSession();
+                    boolean pass = false;
+                    session.getTransaction().begin();
+                    try {
+                        JSONObject card = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
+                        Query query = session.getNamedQuery("dayLimit");
+                        query.setParameter("walletId", old.getWalletId());
+                        List<token> list = query.list();
+                        double lastAmount = 0;
+                        for (int i = 0; i < list.size(); i++) {
+                            if (list.get(i).getStatus() == 3 && i == 0) {
+                                lastAmount = list.get(i).getAmount();
+                                break;
+                            }
+                        }
+
+                        System.out.println("keys = " + entity.getKey4());
+                        System.out.println(lastAmount+ " "+old.getAmount());
+                        if (old.getAmount() < PIN_AMOUNT && lastAmount != old.getAmount()) {
+                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
+                            old.setStatus(entity.getStatus());
+                            session.update(old);
+                            session.getTransaction().commit();
+                            pass = true;
+                        } else
+                        if ((old.getAmount() >= PIN_AMOUNT || lastAmount == old.getAmount()) && card.getString("ccv").equals(vault.decryptDesc(base64.decode(entity.getKey4())))) {
+                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
+                            old.setStatus(entity.getStatus());
+                            session.update(old);
+                            pass = true;
+                            session.getTransaction().commit();
+                        } else {
+                            old.setResponse("{'code':'EZ904','msg':'ПИН буруу !'}");
+                            session.update(old);
+                            session.getTransaction().commit();
+                            pass = false;
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        session.getTransaction().rollback();
+                    } finally {
+                        session.close();
+                        if (pass) {
+                            if (old.getAmount() < 0)
+                                old = pvoid(entity, old);
+                            else
+                                old = payment(entity, old);
+                        }
+                    }
+
+                    return old;
+                } else if (old.getStatus() == CONFIRMED && (entity.getWalletId() != null && entity.getWalletId().length() > 4)) { //wallet owner confirm
+                    Session session = getSession();
+                    session.getTransaction().begin();
+                    try {
+                        if (old.getAmount() < 0) {
+                            old.setResponse("{'code':'EZ903','msg':'Буцаалтыг батлах'}");
+                        } else
+                            old.setResponse("{'code':'EZ903','msg':'Гvйлгээг батлах'}");
+                        session.getTransaction().commit();
+                    } catch (Exception ex) {
+                        session.getTransaction().rollback();
+                    } finally {
+                        session.close();
+                    }
+                    return old;
+                } else if (old.getStatus() == SUCCESS) {
+                    old.setHashed("");
+                    return old;
+                }
+
+                return old;
+            }
+        } else {
+            entity.setResponse("{'code':'EZ900','msg':'Буруу token !'}");
+        }
+
+        return entity;
+    }
+
     public settlement batch_upload(settlement entity, JSONObject bankEntityOld) {
         Session session = getSession();
         try {
@@ -470,147 +610,6 @@ public class tokenDao extends dao<token> {
         return entity;
     }
 
-    public token check(token entity) {
-        String token = tokenFull(entity); //mini baiwal tokenii buheldeh
-        if (token.length() > BARCODE13) {
-            token old = findToken(token);
-            if (old != null) {
-                if (old.getStatus() == NEW && entity.getStatus() == CONFIRMED && (entity.getMerchantData() != null && entity.getMerchantData().length() > 4)) { //merchant confirm
-                    Session session = getSession();
-                    session.getTransaction().begin();
-                    try {
-                        if (entity.getAmount() > MAX_AMOUNT) {
-                            old.setStatus(LIMIT_EXCEED);
-                            old.setResponse("{'code':'EZ905','msg':'Нэг удаагийн лимит хэтэрсэн'}");
-                            old.setMerchantId(entity.getMerchantId());
-                            old.setMerchantData(entity.getMerchantData());
-                            old.setAmount(entity.getAmount());
-                            session.merge(old);
-                            session.getTransaction().commit();
-                        } else {
-                            Query query = session.getNamedQuery("dayLimit");
-                            query.setParameter("walletId", old.getWalletId());
-                            List<token> list = query.list();
-                            double dayLimit = 0;
-                            for (int i = 0; i < list.size(); i++) {
-                                dayLimit += list.get(i).getAmount();
-                            }
-
-                            if (dayLimit + entity.getAmount() > DAY_LIMIT) {
-                                old.setStatus(DAY_EXCEED);
-                                old.setResponse("{'code':'EZ906','msg':'Өдрийн лимит хэтэрсэн !'}");
-                                old.setMerchantId(entity.getMerchantId());
-                                old.setMerchantData(entity.getMerchantData());
-                                old.setAmount(entity.getAmount());
-                                session.merge(old);
-                                session.getTransaction().commit();
-                            } else {
-                                old.setStatus(CONFIRMED);
-                                old.setResponse("{'code':'EZ901','msg':'Token-г борлуулагч баталгаажууллаа !'}");
-                                old.setMerchantId(entity.getMerchantId());
-                                old.setMerchantData(entity.getMerchantData());
-                                old.setAmount(entity.getAmount());
-                                if (entity.getAmount() < 0)
-                                    old.setOldTraceNo(entity.getOldTraceNo()); //butsaaltiin ueiin traceNo
-                                session.merge(old);
-                                session.getTransaction().commit();
-                            }
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        session.getTransaction().rollback();
-                    } finally {
-                        session.close();
-                    }
-                    return old;
-                } else if (old.getStatus() == CONFIRMED && entity.getStatus() == USER_ACCEPT) {//transaction make
-                    Session session = getSession();
-                    boolean pass = false;
-                    session.getTransaction().begin();
-                    try {
-                        JSONObject card = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
-                        /*SecretKey key = KeyGenerator.getInstance("DES").generateKey();
-                        DESKeySpec dks = new DESKeySpec("De$crypt0r@73{2]u".getBytes());
-                        SecretKeyFactory skf = SecretKeyFactory.getInstance("DES");
-                        SecretKey desKey = skf.generateSecret(dks);
-                        DesEncrypter encrypter = new DesEncrypter(desKey);
-                        */
-
-                        Query query = session.getNamedQuery("dayLimit");
-                        query.setParameter("walletId", old.getWalletId());
-                        List<token> list = query.list();
-                        double lastAmount = 0;
-                        for (int i = 0; i < list.size(); i++) {
-                            if (list.get(i).getStatus() == 3 && i == 0) {
-                                lastAmount = list.get(i).getAmount();
-                                break;
-                            }
-                        }
-
-                        System.out.println("keys = " + entity.getKey4());
-                        System.out.println(lastAmount+ " "+old.getAmount());
-                        if (old.getAmount() < PIN_AMOUNT && lastAmount != old.getAmount()) {
-                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
-                            old.setStatus(entity.getStatus());
-                            session.update(old);
-                            session.getTransaction().commit();
-                            pass = true;
-                        } else
-                        if ((old.getAmount() >= PIN_AMOUNT || lastAmount == old.getAmount()) && card.getString("ccv").equals(entity.getKey4())) {
-                            old.setResponse("{'code':'EZ901','msg':'Token-г хэрэглэгч баталгаажууллаа !'}");
-                            old.setStatus(entity.getStatus());
-                            session.update(old);
-                            pass = true;
-                            session.getTransaction().commit();
-                        } else {
-                            old.setResponse("{'code':'EZ904','msg':'ПИН буруу !'}");
-                            session.update(old);
-                            session.getTransaction().commit();
-                            pass = false;
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        session.getTransaction().rollback();
-                    } finally {
-                        session.close();
-                        if (pass) {
-                            if (old.getAmount() < 0)
-                                old = pvoid(entity, old);
-                            else
-                                old = payment(entity, old);
-                        }
-                    }
-
-                    return old;
-                } else if (old.getStatus() == CONFIRMED && (entity.getWalletId() != null && entity.getWalletId().length() > 4)) { //wallet owner confirm
-                    Session session = getSession();
-                    session.getTransaction().begin();
-                    try {
-                        if (old.getAmount() < 0) {
-                            old.setResponse("{'code':'EZ903','msg':'Буцаалтыг батлах'}");
-                        } else
-                            old.setResponse("{'code':'EZ903','msg':'Гvйлгээг батлах'}");
-                        session.getTransaction().commit();
-                    } catch (Exception ex) {
-                        session.getTransaction().rollback();
-                    } finally {
-                        session.close();
-                    }
-                    return old;
-                } else if (old.getStatus() == SUCCESS) {
-                    old.setHashed("");
-                    return old;
-                }
-
-                return old;
-            }
-        } else {
-            entity.setResponse("{'code':'EZ900','msg':'Буруу token !'}");
-        }
-
-        return entity;
-    }
-
     public token pvoid(token entity, token old) {
         try {
             if (old.getStatus() == USER_ACCEPT) {
@@ -737,7 +736,7 @@ public class tokenDao extends dao<token> {
                         res.put("expire", card.getString("expire"));
                         p.setRespondCode(res.getString("respondCode"));
                         p.setCode("EZ910");
-                        res.put("msg", "Success");
+                        res.put("msg", "Гүйлгээ амжилттай !");
                         pur.add(p);
                         old.setTraceNo(traceNo);
                         old.setTrace(pur);
@@ -745,6 +744,9 @@ public class tokenDao extends dao<token> {
                         res.put("code", "EZ910");
                         old.setResponse(res.toString());
                         update(old);
+
+                        if (old.getMerchant().getPhone() != null && old.getMerchant().getPhone().length() == 8)
+                            msgGW.payment(old.getMerchant().getPhone(), old.getAmount());
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", traceNo); //new traceNo
@@ -792,7 +794,7 @@ public class tokenDao extends dao<token> {
 
     public String tokenFull(token entity) {
         String token = entity.getToken();
-        if (token.length() == BARCODE13) {
+        if (token != null && token.length() == BARCODE13) {
             Session session = getSession();
             session.getTransaction().begin();
             try {

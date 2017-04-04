@@ -42,7 +42,7 @@ public class paymentController {
     }
 
     @RequestMapping(value = "token/findAll", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Hashtable findAll(@RequestParam int page, @RequestParam int size, @RequestParam String order, @RequestParam String dir) {
+    public Hashtable findAll(@RequestHeader(value="SECRETKEY") String secret, @RequestParam int page, @RequestParam int size, @RequestParam String order, @RequestParam String dir) {
         List list = service.findAll(page, size, order, dir);
         Hashtable pageable = new Hashtable();
         pageable.put("total", service.total());

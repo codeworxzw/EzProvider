@@ -13,6 +13,8 @@ public class merchant_only implements java.io.Serializable {
     private String merchantId;
     @Column
     private String name;
+    @Column
+    private String phone;
 
     public int getId() {
         return id;
@@ -36,5 +38,13 @@ public class merchant_only implements java.io.Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

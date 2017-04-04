@@ -3,6 +3,9 @@ package mn.ezpay.payment;
 import mn.ezpay.security.rsaencryption;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -149,6 +152,25 @@ public class vault {
         return data;
     }
 
+    public static String decryptDesc(byte[] message) throws Exception {
+        final MessageDigest md = MessageDigest.getInstance("md5");
+        final byte[] digestOfPassword = md.digest("7!,VV=tT%[m?N}$m"
+                .getBytes("utf-8"));
+        final byte[] keyBytes = Arrays.copyOf(digestOfPassword, 24);
+        for (int j = 0, k = 16; j < 8;) {
+            keyBytes[k++] = keyBytes[j++];
+        }
+
+        final SecretKey key = new SecretKeySpec(keyBytes, "DESede");
+        final IvParameterSpec iv = new IvParameterSpec(new byte[8]);
+        final Cipher decipher = Cipher.getInstance("DESede/CBC/PKCS5Padding");
+        decipher.init(Cipher.DECRYPT_MODE, key, iv);
+
+        final byte[] plainText = decipher.doFinal(message);
+
+        return new String(plainText, "UTF-8");
+    }
+
     public static String encryptedData(String data, String fileName) {
         try {
             String parse = data.toString();
@@ -241,6 +263,11 @@ public class vault {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public static String priceWithoutDecimal1(Double price) {
+        DecimalFormat formatter = new DecimalFormat("###,###,###.## MNT");
+        return formatter.format(price);
     }
 
     public static String priceWithoutDecimal(Double price) {
