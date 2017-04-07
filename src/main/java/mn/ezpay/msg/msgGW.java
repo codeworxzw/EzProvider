@@ -16,7 +16,7 @@ import java.net.URLConnection;
 
 public class msgGW {
     public static String PIN_CODE = "Tanii EzPay code : @ Enehuu message haagaad EzPay app-ruu orj code hesegt oruulna uu !";
-    public static String PAYMENT_AMOUNT = "Tanii dansand @ orloo !";
+    public static String PAYMENT_AMOUNT = "Tanii dansand 0@ orloo ! Banknii guilgeenii dugaar 1@.";
 
     public static String buildMsg(int mode, String[] values) {
         String msg = "";
@@ -28,7 +28,7 @@ public class msgGW {
         if (mode == 2) {
             msg = PAYMENT_AMOUNT;
             for (int i = 0; i < values.length; i++)
-                msg = msg.replace("@", values[i]);
+                msg = msg.replace(i+"@", values[i]);
         }
 
         msg = msg.replaceAll(" ", "%20");
@@ -53,10 +53,10 @@ public class msgGW {
         return ret;
     }
 
-    public static String payment(String phone, double amount) {
+    public static String payment(String phone, double amount, String systemRef) {
         String ret = "";
         try {
-            String[] values = {vault.priceWithoutDecimal1(amount)};
+            String[] values = {vault.priceWithoutDecimal1(amount), systemRef};
             String msg = buildMsg(2, values);
             URL oracle = new URL("http://27.123.214.168/smsmt/mt?servicename=easypay&username=easypay&from=151595&to="+phone+"&msg="+msg);
             URLConnection yc = oracle.openConnection();

@@ -291,6 +291,15 @@ public class tokenDao extends dao<token> {
                     session.getTransaction().commit();
                 }
             } else {
+                if (entity.getAmount() > MAX_AMOUNT) {
+                    entity.setStatus(LIMIT_EXCEED);
+                    entity.setResponse("{'code':'EZ905','msg':'Нэг удаагийн лимит хэтэрсэн'}");
+                    entity.setMerchantId(entity.getMerchantId());
+                    entity.setMerchantData(entity.getMerchantData());
+                    entity.setAmount(entity.getAmount());
+                    return entity;
+                }
+
                 token = vault.generateToken();
                 System.out.println(miniToken(token));
                 entity.setResponse("{'code':'EZ901','msg':'Token амжилттай үүслээ !'}");
@@ -323,7 +332,7 @@ public class tokenDao extends dao<token> {
                             entity.setAmount(old.getAmount());
                         }
 
-                        if (entity.getAmount() > MAX_AMOUNT) {
+                        if (entity.getAmount() > MAX_AMOUNT || old.getAmount() > MAX_AMOUNT) {
                             old.setStatus(LIMIT_EXCEED);
                             old.setResponse("{'code':'EZ905','msg':'Нэг удаагийн лимит хэтэрсэн'}");
                             old.setMerchantId(entity.getMerchantId());
@@ -464,7 +473,7 @@ public class tokenDao extends dao<token> {
                 token token = list.get(i);
                 JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(token.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 JSONObject card = null;
-                if ("short".equals(token.getType()))
+                if ("quick".equals(token.getType()) || "short".equals(token.getType()))
                     card = findCard(hashed, findWallet(token.getWalletId()), token);
                 else
                     card = hashed;
@@ -616,7 +625,7 @@ public class tokenDao extends dao<token> {
                 make make = new make();
                 JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 JSONObject card = null;
-                if ("short".equals(old.getType()))
+                if ("quick".equals(old.getType()) || "short".equals(old.getType()))
                     card = findCard(hashed, findWallet(entity.getWalletId()), old);
                 else
                     card = hashed;
@@ -704,7 +713,7 @@ public class tokenDao extends dao<token> {
                 JSONObject hashed = new JSONObject(vault.decrypt(base64.decode(old.getHashed()), getClass().getClassLoader().getResource("cfg/private.der").getFile()));
                 System.out.println(hashed.toString());
                 JSONObject card = null;
-                if ("short".equals(old.getType()))
+                if ("quick".equals(old.getType()) || "short".equals(old.getType()))
                     card = findCard(hashed, findWallet(old.getWalletId()), old);
                 else
                     card = hashed;
@@ -745,8 +754,8 @@ public class tokenDao extends dao<token> {
                         old.setResponse(res.toString());
                         update(old);
 
-                        if (old.getMerchant().getPhone() != null && old.getMerchant().getPhone().length() == 8)
-                            msgGW.payment(old.getMerchant().getPhone(), old.getAmount());
+                        if (old.getMerchant().getPhone() != null && old.getMerchant().getPhone().length() == 8 && "quick".equals(old.getType()))
+                            msgGW.payment(old.getMerchant().getPhone(), old.getAmount(), res.getString("systemRef"));
                     } else {
                         if (res != null && res.getString("respondCode").equals("3931")) {
                             bankEntity.put("traceNo", traceNo); //new traceNo
